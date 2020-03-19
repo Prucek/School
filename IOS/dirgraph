@@ -29,7 +29,6 @@ if test $i -eq 1;then
     shift
 fi
 
-
 if test $# -gt 1 ; then
     #more arguments
     printf "Wrong\n" # ADD ERROR TODO to stderr
@@ -45,6 +44,9 @@ elif test $# -eq 1; then
 fi
 
 #ADD ERROR IF LOCKED FILES TODO 
+
+find -type d | sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/' | grep 'posix'
+ls -R -I `find -type d | sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/' | grep 'ios'`
 
 
 
