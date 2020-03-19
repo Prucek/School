@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
 
 POSIXLY_CORRECT=yes
+OPTIND=1
+DIR=$(pwd)
+n=0
+i=0
 
-FSHIST() #1list_of_sizes
+#File size histogram
+FSHIST() #$1 DIR
 {   
+
+    list_of_sizes=$(ls -lR $DIR | grep "^-" | sed -E 's/([^0-9]*([0-9]*)){2}.*/\2/')
+
     declare -a list
     list[0]=100 
     list[1]=1024 
@@ -25,15 +33,18 @@ FSHIST() #1list_of_sizes
     to_print[7]="<1 GiB  "
     to_print[8]=">=1 GiB "
 
-    arg=$@
+    arg=$list_of_sizes
     sum=0
-    for i in {0..8}
+    len=${#list[@]}
+
+    for((i=0; i<=$len; i++))
     do
+        #calculating count of # to print
         count=0
         for j in $arg
         do
-            if test $i -eq 8; then
-                if test $j -gt ${list[7]}; then
+            if test $i -eq $len; then
+                if test $j -gt ${list[$len-1]}; then
                     ((count++))
                 fi 
             elif test $j -lt ${list[i]}; then
@@ -41,10 +52,19 @@ FSHIST() #1list_of_sizes
             fi
             shift
         done
-    
-        count=$((count-sum))
-        sum=$((sum+count))
 
+        if test $i -ne $len; then
+            count=$((count-sum))
+            sum=$((sum+count))
+        fi
+
+        width=$(tput cols)
+
+        if test $NF -gt $width && test $n -eq 1; then
+            count=$((count/(NF/width)))
+        fi
+
+        #printing length-#
         echo -n "  ${to_print[i]}: "
         for (( k=1; k<=$count; k++ ))
         do
@@ -52,19 +72,43 @@ FSHIST() #1list_of_sizes
         done
         echo
     done
-
 }
 
+
+#checking arguments
+while getopts ni: opt; do
+    case $opt in
+        n) n=1
+        ;;
+        i) i=1
+        ;;
+        \?) echo neco je spatne  # ADD ERROR    TODO
+            return 1
+        ;;
+    esac
+done
+
+if test $n -eq 1;then
+    shift
+fi
+
+if test $i -eq 1;then
+    shift
+    shift
+fi
+#CHECK MULTIPLE DIRECTORIES         TODO
+if test $# -eq 1 && test -d -a $1 ; then
+    DIR=$1
+fi
+
 #printing
-DIR=$(pwd)
-ND=$(ls -lR | grep "^d" | wc -l)
-NF=$(find $(pwd) -type f | wc -l)
+ND=$(ls -lR $DIR| grep "^d" | wc -l)
+NF=$(find $DIR -type f | wc -l)
 echo Root directory: $DIR
 echo Directories: $ND 
 echo All files: $NF
 echo File size histogram:
 
-list_of_sizes=$(ls -lR | grep "^-" | sed -E 's/([^0-9]*([0-9]*)){2}.*/\2/')
-FSHIST $list_of_sizes
+FSHIST $DIR
 
 return 0
