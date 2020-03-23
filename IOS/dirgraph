@@ -9,21 +9,6 @@ ND=0
 NF=0
 
 
-
-# while getopts :ab:c o
-# do case "$o" in
-# a) echo "Option ’a’ found.";;
-# b) echo "Option ’b’ found with parameter ’$OPTARG’.";;
-# c) echo "Option ’c’ found.";;
-# *) echo "Use options a, b with a parameter, or c." >&2
-# exit 1;;
-# esac
-# done
-# ((OPTIND--))
-# shift $OPTIND
-# echo "Remaining arguments: ’$*’"
-
-
 #checking arguments
 while getopts ni: opt; do
     case $opt in
@@ -31,7 +16,7 @@ while getopts ni: opt; do
         ;;
         i) i=1
         ;;
-        \?) printf "Wrong\n" # ADD ERROR    TODO to stderr
+        \?) printf "Wrong\n" 1>&2
             exit 1
         ;;
     esac
@@ -41,38 +26,36 @@ shift "$((OPTIND-1))"
 
 if test $# -gt 1 ; then
     #more arguments
-    printf "Wrong\n" # ADD ERROR TODO to stderr
+    printf "Wrong\n" 1>&2
     exit 1
 elif test $# -eq 1; then
     if test -d $1;then 
         DIR=$1
     else
         #not a directory
-        printf "Wrong\n" #ADD ERROR TODO to stderr
+        printf "Wrong\n" 1>&2
         exit 1
     fi
 fi
 
-#ADD ERROR IF LOCKED FILES TODO 
 
-#find -type d | sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/' | grep 'posix'
-#ls -R -I `find -type d | sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/' | grep '$OPTARG'`
-
-if test $i -eq 1; then
-    ND=$(ls -lR $(find $DIR -type d,f | sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/' | sed 's/^/-I /' | grep "$OPTARG") $DIR | grep "^d" | wc -l)
-    NF=$(ls -lR $(find $DIR -type d,f | sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/' | sed 's/^/-I /' | grep "$OPTARG") $DIR | grep "^-" | wc -l)
+if test $i -eq 1; then  
+    #if -i is on                   
+    ND=$(ls -lR $(find $DIR -type d,f 2> /dev/null| sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/' | grep -E "$OPTARG" | sed 's/^/-I /' ) $DIR 2> /dev/null| grep "^d" | wc -l)
+    NF=$(ls -lR $(find $DIR -type d,f 2> /dev/null| sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/' | grep -E "$OPTARG" | sed 's/^/-I /' ) $DIR 2> /dev/null| grep "^-" | wc -l)
+# find every file and directory,                    ^in format without dots and /                           ^find that fulfill this regex  ^ add -I to ignore from ls  
 else 
-    ND=$(ls -lR $DIR| grep "^d" | wc -l)
-    NF=$(ls -lR $DIR| grep "^-" | wc -l)
+    ND=$(ls -lR $DIR 2> /dev/null| grep "^d" | wc -l)
+    NF=$(ls -lR $DIR 2> /dev/null| grep "^-" | wc -l)
 fi
 
 #File size histogram
 FSHIST() #$1 DIR
 {   
     if test $i -eq 1; then
-        list_of_sizes=$(ls -lR $(find $DIR -type d,f | sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/' | sed 's/^/-I /' | grep "$OPTARG") $DIR | grep "^-" | sed -E 's/([^0-9]*([0-9]*)){2}.*/\2/')
+        list_of_sizes=$(ls -lR $(find $DIR -type d,f 2> /dev/null| sed 's/^.*\(.*\/.*\).*$/\1/'| sed 's/^\/\(.*\).*$/\1/'  | grep -E "$OPTARG" | sed 's/^/-I /') $DIR 2> /dev/null| grep "^-" | sed -E 's/([^0-9]*([0-9]*)){2}.*/\2/')
     else
-        list_of_sizes=$(ls -lR $DIR | grep "^-" | sed -E 's/([^0-9]*([0-9]*)){2}.*/\2/')
+        list_of_sizes=$(ls -lR $DIR 2> /dev/null| grep "^-" | sed -E 's/([^0-9]*([0-9]*)){2}.*/\2/')
     fi
 
     sizes="100 1024 10240 102400 1048576 10485760 104857600 1073741824 1073741824"
@@ -105,7 +88,7 @@ FSHIST() #$1 DIR
     sum=0
     last="${sizes##* }"
     to_print_count=1
-    #for((i=0; i<=$len; i++))
+  
     for i in $sizes
     do
         #calculating count of # to print
