@@ -49,6 +49,9 @@ else
     NF=$(ls -lR $DIR 2> /dev/null| grep "^-" | wc -l)
 fi
 
+#adding +1 - root directory also counting
+ND=$((ND+1))
+
 #File size histogram
 FSHIST() #$1 DIR
 {   
