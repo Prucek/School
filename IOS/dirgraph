@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+# Autor: Peter Rucek, xrucek 00, FIT
+# Datum: 23.3.2020
+# IOS 1. projekt 
+
 POSIXLY_CORRECT=yes
 OPTIND=1
 DIR=$(pwd)
