@@ -126,7 +126,8 @@ FSHIST() #$1 DIR
         fi
 
         #if normalization (-n) is on
-        if test $NF -gt $width && test $n -eq 1; then
+        if test $((NF+10)) -gt $width && test $n -eq 1; then
+        #              ^ beacause length of print_proper
             count=$((count/(NF/width)))
         fi
 
