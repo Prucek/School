@@ -1,5 +1,7 @@
 //htab_clear(t)             zrušení všech položek, tabulka zůstane prázdná
 
+#include <stdio.h>
+#include <stdlib.h>
 #include "htab.h"
 #include "htab_private.h"
 
@@ -7,15 +9,17 @@ void htab_clear(htab_t * t)
 {
     if(t == NULL)
         return;
-
-    struct htab_item *tmp;
-    for(int i = 0; i < t->arr_size; i++)
+    
+    struct htab_item *tmp = t->array[0];
+    if (tmp == NULL)
+        return;
+    for(; tmp == NULL; tmp->next)
     {
-        t->array[i]->data = 0;
-        t->array[i]->key = NULL;
-        struct htab_item *tmp = t->array[i]->next;
-        free(t->array[i]);
+        tmp->data = 0;
+        tmp->key = NULL;
+        free(tmp);
     }
+    printf("A\n");
     t->arr_size = 0;
     t->size = 0;
 

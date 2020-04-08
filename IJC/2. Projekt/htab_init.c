@@ -12,23 +12,23 @@
 
 htab_t *htab_init(size_t n)
 {
-    if (n >= 0)
+    if (n <= 0)
     {
-        fprintf(stderr,"htab_init: n < 0!");
+        fprintf(stderr,"htab_init: n < 0!\n");
         return NULL;
     }
     htab_t *new_htab = malloc(sizeof(htab_t));
     if(new_htab == NULL)
     {
-        fprintf(stderr,"htab_init: Malloc failed");
+        fprintf(stderr,"htab_init: Malloc failed\n");
         return NULL;
     }
 
     new_htab->arr_size = n;
     new_htab->size = 0;
-    for (size_t i = 0; i < new_htab->arr_size; i++)
+    for (size_t i = 0; i < htab_bucket_count(new_htab); i++)
     {
-        new_htab->array[i] = malloc(sizeof(struct htab_item)*n);
+        new_htab->array[i] = malloc(sizeof(struct htab_item));
         new_htab->array[i] = NULL;
     }
 

@@ -1,21 +1,66 @@
 # Makefile
-# Riesenie IJC-DU1, příklad a), 28.2.2020
+# Riesenie IJC-DU2, příklad a),b) 8.4.2020
 # Autor: Peter Rucek, xrucek00, FIT
 # GCC 7.4.0 (Ubuntu 7.4.0-1ubuntu1~18.04.1)
 
+CPPFLAGS=-std=c++17 -pedantic -Wall
+CFLAGS=-std=c99 -Wall -Werror -Wextra -pedantic -02
 
-CFLAGS=-std=c11 -Wall -Werror -Wextra -pedantic 
+all: tail libhtab.a wordcount wordcountcpp
 
-all: tail wordcount
+# $@ Cíl
+# $< První závislost
+# $^ Všechny závislosti bez duplicit
+#===============================================================
 
 tail: tail.c tail.h
-	gcc tail.c $(CFALGS) -o tail
+	gcc $(CFALGS) $< -o $@
 
-wordcount: wordcount-.cc
-	g++ wordcount-.cc $(CFALGS) -o wordcount
+#===============================================================
+
+htab_init.o: htab_init.c htab_private.h 
+	gcc $(CFALGS) -c $<
+
+htab_clear.o: htab_clear.c htab_private.h
+	gcc $(CFALGS) -c $<
+
+htab_free.o: htab_free.c htab_private.h
+	gcc $(CFALGS) -c $< 
+
+htab_begin.o: htab_begin.c htab_private.h
+	gcc $(CFALGS) -c $<  
+
+htab_end.o: htab_end.c htab_private.h
+	gcc $(CFALGS) -c $<  
+
+htab_iterator_next.o: htab_iterator_next.c htab_private.h
+	gcc $(CFALGS) -c $< 
+
+htab_size.o: htab_size.c htab_private.h
+	gcc $(CFALGS) -c $< 
+
+htab_bucket_count.o: htab_bucket_count.c htab_private.h
+	gcc $(CFALGS) -c $<	
+
+#===============================================================
+
+wordcountcpp: wordcount-.cc
+	g++ $(CPPFALGS) $^ -o $@
+
+wordcount: htab.h wordcount.c libhtab.a
+	gcc $(CFALGS) $^ -o $@
+
+#===============================================================
+
+libhtab.a: htab_init.o htab_clear.o htab_free.o  htab_begin.o htab_end.o htab_iterator_next.o htab_bucket_count.o htab_size.o
+	ar rcs $@ $^
+
+#===============================================================
 
 clean:
-	rm tail wordcount
+	rm -f tail wordcount wordcountcpp
+	rm -f *.o
+	rm -f libhtab.a
 
 
 # (10b)
