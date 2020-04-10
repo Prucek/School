@@ -6,11 +6,11 @@
 CPPFLAGS=-std=c++17 -pedantic -Wall
 CFLAGS=-std=c99 -Wall -Werror -Wextra -pedantic -02
 
-LIB_DEP= htab_init.o htab_clear.o htab_free.o  
+LIB_DEP = htab_init.o htab_clear.o htab_free.o htab_erase.o
 LIB_DEP+= htab_begin.o htab_end.o htab_iterator_next.o 
 LIB_DEP+= htab_bucket_count.o htab_size.o 
 LIB_DEP+= htab_iterator_get_key.o htab_iterator_get_value.o htab_iterator_set_value.o
-LIB_DEP+= htab_hash_fun.o htab_lookup_add.o htab.o
+LIB_DEP+= htab_hash_fun.o htab_lookup_add.o htab.o htab_find.o
 
 all: tail libhtab.a wordcount wordcountcpp
 
@@ -34,6 +34,9 @@ htab_clear.o: htab_clear.c htab_private.h
 	gcc $(CFALGS) -c $<
 
 htab_free.o: htab_free.c htab_private.h
+	gcc $(CFALGS) -c $< 
+
+htab_erase.o: htab_erase.c htab_private.h
 	gcc $(CFALGS) -c $< 
 
 htab_begin.o: htab_begin.c htab_private.h
@@ -64,6 +67,9 @@ htab_hash_fun.o: htab_hash_fun.c htab_private.h
 	gcc $(CFALGS) -c $<	
 
 htab_lookup_add.o: htab_lookup_add.c htab_private.h
+	gcc $(CFALGS) -c $<	
+
+htab_find.o: htab_find.c htab_private.h
 	gcc $(CFALGS) -c $<	
 
 #===============================================================

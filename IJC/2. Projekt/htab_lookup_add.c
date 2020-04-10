@@ -22,36 +22,55 @@ htab_iterator_t htab_lookup_add(htab_t * t, htab_key_t key)
         return htab_end(t);
     }
     //together
-    size_t index = htab_hash_fun(key) % htab_bucket_count(t);
-    
-    htab_iterator_t it = { .t = t, .idx = index};
-    //lookup
-    if (t->array[index] != NULL)
-    {
-        //TODO cmp keys
+    htab_iterator_t it = htab_find(t,key);
 
-        //if keys are equal
-        it.ptr = t->array[index];
-        it.ptr->data++;
-        
+    //lookup
+    if (it.ptr != NULL)
+    {
+        it.ptr->data++;   
     }
     else
     {
         //add
+        
+        bool same_index = false;
+        size_t index = htab_hash_fun(key) % htab_bucket_count(t);
 
-        it.ptr = malloc(sizeof(struct htab_item));
-        if( it.ptr == NULL)
+        struct htab_item *item = t->array[index];
+        struct htab_item *tmp;
+        while (item != NULL)
+        {
+            same_index = true;
+            tmp = item;
+            item = item->next;
+        }
+
+        item = malloc(sizeof(struct htab_item));
+        if(item == NULL)
         {
             fprintf(stderr,"htab_lookup_add: Malloc failed\n");
             return it;
         }
 
-        t->array[index] = it.ptr ;
+        it.idx = index;
+        it.ptr = item;
+        
+        t->size++;
+
         it.ptr->key = key;
         it.ptr->data = 1;
-        it.ptr->next = NULL;
 
-        t->size++;
+        if(same_index)
+        {
+            tmp->next = item;
+        }
+        if(!same_index)
+        {
+            t->array[index] = item;
+        }
+
+        it.ptr->next = NULL;
+         
     } 
     return it;
 }

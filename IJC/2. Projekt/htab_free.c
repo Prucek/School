@@ -8,6 +8,5 @@
 void htab_free(htab_t * t)
 {
     htab_clear(t);
-    //free(t->array[t->size]);
     free(t);
 }

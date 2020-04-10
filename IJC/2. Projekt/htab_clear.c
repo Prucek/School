@@ -16,15 +16,7 @@ void htab_clear(htab_t * t)
     for(htab_iterator_t it = htab_begin(t); !htab_iterator_equal(it,htab_end(t)); )
     {
         htab_iterator_t tmp = it;
-        it = htab_iterator_next(it);
-        free(tmp.ptr);
+        it = htab_iterator_next(it);   
+        htab_erase(t, tmp);
     }   
-
-    // htab_iterator_t it = htab_begin(t);
-    // htab_iterator_t tmp = it;
-    
-    // it = htab_iterator_next(it);
-    // free(tmp.ptr);
-    // free(it.ptr);
-
 }
