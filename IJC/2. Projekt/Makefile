@@ -6,6 +6,12 @@
 CPPFLAGS=-std=c++17 -pedantic -Wall
 CFLAGS=-std=c99 -Wall -Werror -Wextra -pedantic -02
 
+LIB_DEP= htab_init.o htab_clear.o htab_free.o  
+LIB_DEP+= htab_begin.o htab_end.o htab_iterator_next.o 
+LIB_DEP+= htab_bucket_count.o htab_size.o 
+LIB_DEP+= htab_iterator_get_key.o htab_iterator_get_value.o htab_iterator_set_value.o
+LIB_DEP+= htab_hash_fun.o htab_lookup_add.o htab.o
+
 all: tail libhtab.a wordcount wordcountcpp
 
 # $@ Cíl
@@ -17,6 +23,9 @@ tail: tail.c tail.h
 	gcc $(CFALGS) $< -o $@
 
 #===============================================================
+
+htab.o: htab.c htab_private.h
+	gcc $(CFALGS) -c $<
 
 htab_init.o: htab_init.c htab_private.h 
 	gcc $(CFALGS) -c $<
@@ -42,6 +51,21 @@ htab_size.o: htab_size.c htab_private.h
 htab_bucket_count.o: htab_bucket_count.c htab_private.h
 	gcc $(CFALGS) -c $<	
 
+htab_iterator_get_key.o: htab_iterator_get_key.c htab_private.h
+	gcc $(CFALGS) -c $<	
+
+htab_iterator_get_value.o: htab_iterator_get_value.c htab_private.h
+	gcc $(CFALGS) -c $<	
+
+htab_iterator_set_value.o: htab_iterator_set_value.c htab_private.h
+	gcc $(CFALGS) -c $<	
+
+htab_hash_fun.o: htab_hash_fun.c htab_private.h
+	gcc $(CFALGS) -c $<	
+
+htab_lookup_add.o: htab_lookup_add.c htab_private.h
+	gcc $(CFALGS) -c $<	
+
 #===============================================================
 
 wordcountcpp: wordcount-.cc
@@ -52,7 +76,7 @@ wordcount: htab.h wordcount.c libhtab.a
 
 #===============================================================
 
-libhtab.a: htab_init.o htab_clear.o htab_free.o  htab_begin.o htab_end.o htab_iterator_next.o htab_bucket_count.o htab_size.o
+libhtab.a: $(LIB_DEP)
 	ar rcs $@ $^
 
 #===============================================================
@@ -62,6 +86,8 @@ clean:
 	rm -f *.o
 	rm -f libhtab.a
 
+pack:
+	zip xrucek00.zip *.c *.cc *.h Makefile
 
 # (10b)
 

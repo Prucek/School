@@ -3,13 +3,18 @@
 
 #include "htab.h"
 #include "htab_private.h"
+#include <stdio.h>
 
 htab_iterator_t htab_begin(const htab_t * t)
 {
     htab_iterator_t iterator = {.ptr = NULL, .t = NULL , .idx = 0 };
 
     if(t == NULL)
+    {
+        fprintf(stderr,"htab_begin: t is NULL!\n");
         return iterator;
+    }
+    iterator.t = t;
     
     for(size_t i = 0; i< htab_bucket_count(t); i++)
     {

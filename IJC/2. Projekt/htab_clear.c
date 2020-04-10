@@ -8,19 +8,23 @@
 void htab_clear(htab_t * t)
 {
     if(t == NULL)
-        return;
-    
-    struct htab_item *tmp = t->array[0];
-    if (tmp == NULL)
-        return;
-    for(; tmp == NULL; tmp->next)
     {
-        tmp->data = 0;
-        tmp->key = NULL;
-        free(tmp);
+        fprintf(stderr,"htab_clear: t is NULL\n");
+        return;
     }
-    printf("A\n");
-    t->arr_size = 0;
-    t->size = 0;
+
+    for(htab_iterator_t it = htab_begin(t); !htab_iterator_equal(it,htab_end(t)); )
+    {
+        htab_iterator_t tmp = it;
+        it = htab_iterator_next(it);
+        free(tmp.ptr);
+    }   
+
+    // htab_iterator_t it = htab_begin(t);
+    // htab_iterator_t tmp = it;
+    
+    // it = htab_iterator_next(it);
+    // free(tmp.ptr);
+    // free(it.ptr);
 
 }

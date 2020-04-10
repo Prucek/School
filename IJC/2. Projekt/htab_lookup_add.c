@@ -11,6 +11,7 @@
 //     (a uživatel musí testovat výsledek těchto operací)
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "htab.h"
 #include "htab_private.h"
 
@@ -18,43 +19,39 @@ htab_iterator_t htab_lookup_add(htab_t * t, htab_key_t key)
 {
     if (t == NULL || key == NULL) {
         fprintf(stderr, "htab_lookup_add: t or key is NULL\n");
-        return NULL; //zatial
         return htab_end(t);
     }
+    //together
+    size_t index = htab_hash_fun(key) % htab_bucket_count(t);
+    
+    htab_iterator_t it = { .t = t, .idx = index};
+    //lookup
+    if (t->array[index] != NULL)
+    {
+        //TODO cmp keys
 
-    int index = (htab_hash_function(key) % t->arr_size);
-    htab_iterator_t it = { .ptr = t->array[index], .t = t, .idx = index };
+        //if keys are equal
+        it.ptr = t->array[index];
+        it.ptr->data++;
+        
+    }
+    else
+    {
+        //add
 
-    /* Projdeme cely seznam na danem indexu a zjistime, zda se v tabulce jiz
-     * dane slovo nachazi */
-    while (htab_iterator_valid(it) && it.idx == index) {
-        if (!strcmp(htab_iterator_get_key(it), key)) {
+        it.ptr = malloc(sizeof(struct htab_item));
+        if( it.ptr == NULL)
+        {
+            fprintf(stderr,"htab_lookup_add: Malloc failed\n");
             return it;
         }
 
-        it = htab_iterator_next(it);
-    }
+        t->array[index] = it.ptr ;
+        it.ptr->key = key;
+        it.ptr->data = 1;
+        it.ptr->next = NULL;
 
-    /* Tabulka danou polozku neobsahovala, tudiz musime polozku pridat */
-    it.ptr = malloc(sizeof(struct htab_item));
-    if (it.ptr == NULL) {
-        fprintf(stderr, "Error: nepodarilo se vlozit klic do tabulky\n");
-        return htab_end(t);
-    }
-
-    /* Alokace a kontrola alokace pameti pro novy zaznam */
-    it.ptr->key = malloc(strlen(key) + 1);
-
-    if (htab_iterator_get_key(it) == NULL) {
-        free(it.ptr);
-        return htab_end(t);
-    }
-
-    /* Inicializace nove polozky a uprava dat tabulky */
-    strcpy(it.ptr->key, key);
-    htab_iterator_set_value(it, 0);
-    it.ptr->next = t->array[index];
-    t->array[index] = it.ptr;
-    t->size++;
+        t->size++;
+    } 
     return it;
 }

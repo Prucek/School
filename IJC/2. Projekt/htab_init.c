@@ -17,18 +17,18 @@ htab_t *htab_init(size_t n)
         fprintf(stderr,"htab_init: n < 0!\n");
         return NULL;
     }
-    htab_t *new_htab = malloc(sizeof(htab_t));
+    htab_t *new_htab = malloc(sizeof(htab_t)+sizeof(char *)*n);//alloc of metadata
+    //new_htab->array[n] = malloc(sizeof(char *)*n); //alloc of table //size of pointer ??const char * htab_key_t??
     if(new_htab == NULL)
     {
         fprintf(stderr,"htab_init: Malloc failed\n");
         return NULL;
     }
 
-    new_htab->arr_size = n;
     new_htab->size = 0;
-    for (size_t i = 0; i < htab_bucket_count(new_htab); i++)
+    new_htab->arr_size = n;
+    for (size_t i = 0; i < htab_bucket_count(new_htab); i++)// ??n or new_htab->arr_size??
     {
-        new_htab->array[i] = malloc(sizeof(struct htab_item));
         new_htab->array[i] = NULL;
     }
 
