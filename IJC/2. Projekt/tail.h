@@ -1,7 +1,7 @@
 // tail.h
-// Riesenie IJC-DU1, příklad a), 28.2.2020
+// Riesenie IJC-DU2, příklad a), 5.4.2020
 // Autor: Peter Rucek, xrucek00, FIT
-// GCC 7.4.0 (Ubuntu 7.4.0-1ubuntu1~18.04.1)
+// GCC 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)s
 
 #include <stdio.h>
 #include <ctype.h>
@@ -89,6 +89,7 @@ void tailWithPlus(FILE *file,int num);
  * @param file Pointer to a file
  * 
  * @param num Number of lines
+ * 
  */
 void tail(FILE* file, int num);
 

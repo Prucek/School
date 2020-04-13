@@ -1,12 +1,14 @@
-//size_t htab_hash_fun(htab_key_t str);
-//     - Vhodná rozptylovací funkce pro řetězce je podle literatury
-//       (http://www.cse.yorku.ca/~oz/hash.html - varianta sdbm):
+//  htab_hash_fun.c
+//  Riesenie IJC-DU2, příklad b) 7.4.2020
+//  Autor: Peter Rucek, xrucek00, FIT
+//  GCC 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)
 
 #include <stdint.h>
 #include "htab.h"
 
 #ifndef HASHTEST
 
+// (http://www.cse.yorku.ca/~oz/hash.html - varianta sdbm)
 size_t htab_hash_fun(const char *str) {
     uint32_t h=0;     // musí mít 32 bitů
     const unsigned char *p;
@@ -15,13 +17,9 @@ size_t htab_hash_fun(const char *str) {
     return h;
 }
 
-//   její výsledek modulo arr_size určuje index do tabulky:
-//     index = (htab_hash_fun("mystring") % arr_size);
-//   Zkuste použít i jiné podobné funkce a porovnejte efektivitu.
-
 #else
 
-//http://www.cse.yorku.ca/~oz/hash.html - djb2
+// (http://www.cse.yorku.ca/~oz/hash.html - varianta djb2)
 size_t htab_hash_fun(const char*str)
 {
     uint32_t hash = 5381;
@@ -32,4 +30,5 @@ size_t htab_hash_fun(const char*str)
 
     return hash;
 }
+
 #endif

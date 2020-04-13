@@ -1,7 +1,7 @@
 // tail.c
 // Riesenie IJC-DU2, příklad 1, 5.4.2020
 // Autor: Peter Rucek, xrucek00, FIT
-// GCC 7.4.0 (Ubuntu 7.4.0-1ubuntu1~18.04.1)
+//  GCC 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)
 // Implementation of the POSIX tail function
 
 #include "tail.h"
@@ -217,4 +217,3 @@ int main(int argc,char *argv[])
         
     return EXIT_SUCCESS;
 }
-

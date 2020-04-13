@@ -1,38 +1,43 @@
-//iterator=htab_lookup_add(t,key)   vyhledávání+přidání - viz dále
-// htab_iterator_t htab_lookup_add(htab_t *t, htab_key_t key);
-// V tabulce  t  vyhledá záznam odpovídající řetězci  key  a
-// - pokud jej nalezne, vrátí iterátor na záznam
-// - pokud nenalezne, automaticky přidá záznam a vrátí iterátor
-// Poznámka: Dobře promyslete chování této funkce k parametru key.
-// Poznámka: podobně se chová C++ operátor [] pro std::unordered_map
-
-// - Když htab_init nebo htab_lookup_add nemohou alokovat paměť,
-//     vrací NULL nebo nevalidní iterátor htab_end
-//     (a uživatel musí testovat výsledek těchto operací)
+//  htab_lookup_add.c
+//  Riesenie IJC-DU2, příklad b) 12.4.2020
+//  Autor: Peter Rucek, xrucek00, FIT
+//  GCC 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "htab.h"
 #include "htab_private.h"
 
+/**
+ * @brief htab_lookup_add
+ * Finds key in hash table or adds new item if key was not fount
+ * 
+ * @param t Pointer to hash table
+ * 
+ * @param key Word to find or add
+ * 
+ * @return Iterator with all informations
+ */
 htab_iterator_t htab_lookup_add(htab_t * t, htab_key_t key)
 {
-    if (t == NULL || key == NULL) {
-        fprintf(stderr, "htab_lookup_add: t or key is NULL\n");
+    if (t == NULL || key == NULL) 
+    {
+        fprintf(stderr, "Error: htab_lookup_add: t or key is NULL!\n");
         return htab_end(t);
     }
-    //together
+
+    //find if exist
     htab_iterator_t it = htab_find(t,key);
 
-    //lookup
+
     if (it.ptr != NULL)
     {
+        //look up
         it.ptr->data++;   
     }
     else
     {
-        //add
-        
+        //add        
         bool same_index = false;
         size_t index = htab_hash_fun(key) % htab_bucket_count(t);
 
@@ -40,41 +45,41 @@ htab_iterator_t htab_lookup_add(htab_t * t, htab_key_t key)
         struct htab_item *tmp;
         while (item != NULL)
         {
+            //if more hashes on one index, go to the last one
             same_index = true;
             tmp = item;
             item = item->next;
         }
 
+        //allocation
         item = malloc(sizeof(struct htab_item));
         if(item == NULL)
         {
-            fprintf(stderr,"htab_lookup_add: Malloc failed\n");
+            fprintf(stderr,"Error: htab_lookup_add: Malloc failed!\n");
             return it;
         }
-        
 
-
-        it.idx = index;
-        it.ptr = item;
-        
+        //new item was added
         t->size++;
 
-        //it.ptr->key = malloc(sizeof(htab_key_t));
-        // void my_copy(char s[], const char s1[]) { /* s1 do s */
-        // while( (*s++ = *s1++) != '\0' );
-        // }
-        // char *strcpy(char *s1, const char *s2) {
-        // char *s = s1;
-        // while( *s++ = *s2++ );
-        // return s1;
-        // }
+        //fill iterator and htab_item values
+        it.idx = index;
+        it.ptr = item;
 
-        //it.ptr->key = malloc(sizeof(htab_key_t)+1);
+        //allocation of the key and add value
         it.ptr->key = malloc(strlen(key)+1);
+        if(it.ptr->key == NULL)
+        {
+            fprintf(stderr,"Error: htab_lookup_add: Malloc failed!\n");
+            return it;
+        }
+
         strcpy((char *)it.ptr->key,key);
-        //strcpy(it.ptr->key, key);
+
+        //first appearance
         it.ptr->data = 1;
 
+        //rebinding
         if(same_index)
         {
             tmp->next = item;
@@ -84,8 +89,7 @@ htab_iterator_t htab_lookup_add(htab_t * t, htab_key_t key)
             t->array[index] = item;
         }
 
-        it.ptr->next = NULL;
-         
+        it.ptr->next = NULL;       
     } 
     return it;
 }

@@ -1,10 +1,10 @@
 # Makefile
-# Riesenie IJC-DU2, příklad a),b) 12.4.2020
+# Riesenie IJC-DU2, příklad a),b) 13.4.2020
 # Autor: Peter Rucek, xrucek00, FIT
-# GCC 7.4.0 (Ubuntu 7.4.0-1ubuntu1~18.04.1)
+# GCC 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)
 
 CPPFLAGS=-std=c++17 -pedantic -Wall
-CFLAGS=-std=c99 -Wall -Werror -Wextra -pedantic -02
+CFLAGS=-std=c99 -O2 -Wall -Werror -Wextra -pedantic -g
 
 LIB_DEP = htab_init.o htab_clear.o htab_free.o htab_erase.o
 LIB_DEP+= htab_begin.o htab_end.o htab_iterator_next.o 
@@ -12,7 +12,13 @@ LIB_DEP+= htab_bucket_count.o htab_size.o
 LIB_DEP+= htab_iterator_get_key.o htab_iterator_get_value.o htab_iterator_set_value.o
 LIB_DEP+= htab_hash_fun.o htab_lookup_add.o htab.o htab_find.o
 
-all: tail libhtab.a wordcount wordcountcpp
+LIB_DEP_DYN = htab-dynamic.o htab_init-dynamic.o htab_clear-dynamic.o htab_free-dynamic.o htab_erase-dynamic.o
+LIB_DEP_DYN+= htab_begin-dynamic.o htab_end-dynamic.o htab_iterator_next-dynamic.o
+LIB_DEP_DYN+= htab_size-dynamic.o htab_bucket_count-dynamic.o
+LIB_DEP_DYN+= htab_iterator_get_key-dynamic.o htab_iterator_get_value-dynamic.o htab_iterator_set_value-dynamic.o
+LIB_DEP_DYN+= htab_hash_fun-dynamic.o htab_lookup_add-dynamic.o htab_find-dynamic.o
+
+all: tail libhtab.a libhtab.so wordcount wordcount-dynamic #???????????????wordcountcpp????????????????????????????????????
 
 # $@ Cíl
 # $< První závislost
@@ -23,6 +29,60 @@ tail: tail.c tail.h
 	gcc $(CFALGS) $< -o $@
 
 #===============================================================
+
+# dynamic
+
+htab-dynamic.o: htab.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@
+
+htab_init-dynamic.o: htab_init.c htab_private.h 
+	gcc $(CFALGS)-fPIC -c $< -o $@
+
+htab_clear-dynamic.o: htab_clear.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@
+
+htab_free-dynamic.o: htab_free.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@
+
+htab_erase-dynamic.o: htab_erase.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@
+
+htab_begin-dynamic.o: htab_begin.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@ 
+
+htab_end-dynamic.o: htab_end.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@ 
+
+htab_iterator_next-dynamic.o: htab_iterator_next.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@
+
+htab_size-dynamic.o: htab_size.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@
+
+htab_bucket_count-dynamic.o: htab_bucket_count.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@	
+
+htab_iterator_get_key-dynamic.o: htab_iterator_get_key.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@	
+
+htab_iterator_get_value-dynamic.o: htab_iterator_get_value.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@	
+
+htab_iterator_set_value-dynamic.o: htab_iterator_set_value.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@	
+
+htab_hash_fun-dynamic.o: htab_hash_fun.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@	
+
+htab_lookup_add-dynamic.o: htab_lookup_add.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@	
+
+htab_find-dynamic.o: htab_find.c htab_private.h
+	gcc $(CFALGS)-fPIC -c $< -o $@	
+
+#===============================================================
+
+# static
 
 htab.o: htab.c htab_private.h
 	gcc $(CFALGS) -c $<
@@ -74,31 +134,38 @@ htab_find.o: htab_find.c htab_private.h
 
 #===============================================================
 
-io.o: io.c io.h
-	gcc $(CFALGS) -c $<
+# several wordcount programs
 
 wordcountcpp: wordcount-.cc
 	g++ $(CPPFALGS) $^ -o $@
 
-wordcount: htab.h wordcount.c libhtab.a io.o
-	gcc $(CFALGS) $^ -o $@
+wordcount: htab.h wordcount.c libhtab.a io.c
+	gcc $(CFALGS) -static $^ -L. -lhtab -o $@
+
+wordcount-dynamic: htab.h wordcount.c libhtab.so io.c
+	gcc $(CFALGS) $^ -L. -lhtab -o $@
 
 #===============================================================
+
+# libraries
 
 libhtab.a: $(LIB_DEP)
 	ar rcs $@ $^
 
+libhtab.so: $(LIB_DEP_DYN)
+	gcc $(CFLAGS) -shared -fPIC $^ -o $@ 
+
 #===============================================================
 
+.PHONY: clean pack
+
 clean:
-	rm -f tail wordcount wordcountcpp
+	rm -f tail wordcount wordcount-dynamic wordcountcpp
 	rm -f *.o
-	rm -f libhtab.a
+	rm -f libhtab.a libhtab.so
 
 pack:
 	zip xrucek00.zip *.c *.cc *.h Makefile
-
-# (10b)
 
 # Použijte implicitní lokalizaci (= nevolat setlocale()). Zamyslete se nad tím,
 # jaké problémy by přineslo použití UTF-8 při zapnuté lokalizaci s tímto
@@ -123,39 +190,3 @@ pack:
 #       LD_LIBRARY_PATH="."   (viz "man ld.so" a odpovídající přednáška)
 #  - Čtěte pokyny pro vypracování domácích úkolů (viz dále)
 
-# ===================================================================================
-#  Obecné pokyny pro vypracování domácích úkolů
-
-# *  Pro úkoly v jazyce C používejte ISO C99 (soubory *.c)
-#    Pro úkoly v jazyce C++ používejte ISO C++17 (soubory *.cc)
-#    Použití nepřenositelných konstrukcí v programech není dovoleno.
-
-# *  Úkoly zkontrolujte překladačem například takto:
-#       gcc -std=c99 -pedantic -Wall -Wextra priklad1.c
-#       g++ -std=c++17 -pedantic -Wall priklad.cc
-#    Místo gcc můžete použít i jiný překladač - podle vašeho prostředí.
-#    V  souvislosti s tím napište do poznámky na začátku
-#    souboru jméno a verzi překladače, kterým byl program přeložen
-#    (implicitní je GCC `g++ --version` na počítači merlin).
-
-# *  Programy  pište, pokud je to možné, do jednoho zdrojového
-#    souboru. Dodržujte předepsaná jména souborů.
-
-# *  Na začátek každého souboru napište poznámku, která bude
-#    obsahovat jméno, fakultu, označení příkladu a datum.
-
-# * Úkoly je nutné zabalit programem zip takto:
-#        zip xnovak99.zip *.c *.cc *.h Makefile
-
-#   Jméno xnovak99 nahradíte vlastním. Formát souboru bude ZIP.
-#   Archiv neobsahuje adresáře.  Každý si zkontroluje obsah ZIP archivu jeho
-#   rozbalením v prázdném adresáři a napsáním "make".
-
-# * Posílejte pouze nezbytně nutné soubory -- ne *.EXE !
-
-# * Řešení se odevzdává elektronicky v IS FIT
-
-# * Úkoly neodevzdané v termínu (podle WIS) budou za 0 bodů.
-
-# * Opsané úkoly budou hodnoceny 0 bodů pro všechny zůčastněné
-#   a to bez výjimky (+ bonus v podobě návštěvy u disciplinární komise).
