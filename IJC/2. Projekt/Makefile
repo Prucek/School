@@ -1,5 +1,5 @@
 # Makefile
-# Riesenie IJC-DU2, příklad a),b) 8.4.2020
+# Riesenie IJC-DU2, příklad a),b) 12.4.2020
 # Autor: Peter Rucek, xrucek00, FIT
 # GCC 7.4.0 (Ubuntu 7.4.0-1ubuntu1~18.04.1)
 
@@ -74,10 +74,13 @@ htab_find.o: htab_find.c htab_private.h
 
 #===============================================================
 
+io.o: io.c io.h
+	gcc $(CFALGS) -c $<
+
 wordcountcpp: wordcount-.cc
 	g++ $(CPPFALGS) $^ -o $@
 
-wordcount: htab.h wordcount.c libhtab.a
+wordcount: htab.h wordcount.c libhtab.a io.o
 	gcc $(CFALGS) $^ -o $@
 
 #===============================================================

@@ -1,4 +1,5 @@
-//htab.c
+#ifndef __HTAB_PRIVATE_H__
+#define __HTAB_PRIVATE_H__
 
 #include "htab.h"
 
@@ -16,5 +17,5 @@ struct htab_item
     struct htab_item *next;
 };
 
-
+#endif // __HTAB_PRIVATE_H__
 

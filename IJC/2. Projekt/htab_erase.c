@@ -8,5 +8,6 @@
 
 void htab_erase(htab_t * t, htab_iterator_t it)
 {
+    free((char *)it.ptr->key);
     free(it.ptr);
 }
