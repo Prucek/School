@@ -29,7 +29,6 @@ htab_iterator_t htab_lookup_add(htab_t * t, htab_key_t key)
     //find if exist
     htab_iterator_t it = htab_find(t,key);
 
-
     if (it.ptr != NULL)
     {
         //look up
@@ -77,7 +76,7 @@ htab_iterator_t htab_lookup_add(htab_t * t, htab_key_t key)
         strcpy((char *)it.ptr->key,key);
 
         //first appearance
-        it.ptr->data = 1;
+        htab_iterator_set_value(it,1);
 
         //rebinding
         if(same_index)

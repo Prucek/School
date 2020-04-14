@@ -15,7 +15,7 @@ int get_word(char *s, int max, FILE *f)
 	while((c = fgetc(f)) != EOF)
 	{
         //if count is max or white space was read, add \0 and return   
-        if(count == max || isspace(c))
+        if(count > max || isspace(c))
         {
             //if count is 0, only white space was read => do nothing
             if(count)

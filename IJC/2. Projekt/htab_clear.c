@@ -23,6 +23,8 @@ void htab_clear(htab_t * t)
 
     for(htab_iterator_t it = htab_begin(t); !htab_iterator_equal(it,htab_end(t)); )
     {
+        if(!htab_iterator_valid(it))
+            return;
         htab_iterator_t tmp = it;
         it = htab_iterator_next(it);   
         htab_erase(t, tmp);

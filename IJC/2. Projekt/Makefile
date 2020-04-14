@@ -18,7 +18,7 @@ LIB_DEP_DYN+= htab_size-dynamic.o htab_bucket_count-dynamic.o
 LIB_DEP_DYN+= htab_iterator_get_key-dynamic.o htab_iterator_get_value-dynamic.o htab_iterator_set_value-dynamic.o
 LIB_DEP_DYN+= htab_hash_fun-dynamic.o htab_lookup_add-dynamic.o htab_find-dynamic.o
 
-all: tail libhtab.a libhtab.so wordcount wordcount-dynamic #???????????????wordcountcpp????????????????????????????????????
+all: tail libhtab.a libhtab.so wordcount wordcount-dynamic #wordcountcpp
 
 # $@ Cíl
 # $< První závislost
@@ -166,27 +166,3 @@ clean:
 
 pack:
 	zip xrucek00.zip *.c *.cc *.h Makefile
-
-# Použijte implicitní lokalizaci (= nevolat setlocale()). Zamyslete se nad tím,
-# jaké problémy by přineslo použití UTF-8 při zapnuté lokalizaci s tímto
-# dnes běžně používaným kódováním.
-
-# Napište soubor Makefile tak, aby příkaz make vytvořil programy
-# "tail", "wordcount", "wordcount-dynamic" a knihovny "libhtab.a",
-# "libhtab.so" (nebo "htab.dll" atd.).
-
-# Program "wordcount" musí být staticky sestaven s knihovnou "libhtab.a".
-
-# Program "wordcount-dynamic" musí být sestaven s knihovnou "libhtab.so".
-# Tento program otestujte se stejnými vstupy jako u staticky sestavené verze.
-
-# Porovnejte efektivitu obou (C i C++) implementací (viz např. příkaz time)
-# a zamyslete se nad výsledky (pozor na vliv vyrovnávacích paměťí atd.)
-# Také si zkuste překlad s optimalizací i bez ní (-O2, -O0) a porovnejte
-# efektivitu pro vhodný vstup.
-
-# Poznámky:
-#  - 2) pro testy wordcount-dynamic na linuxu budete potřebovat nastavit
-#       LD_LIBRARY_PATH="."   (viz "man ld.so" a odpovídající přednáška)
-#  - Čtěte pokyny pro vypracování domácích úkolů (viz dále)
-

@@ -5,7 +5,7 @@
 
 #include "htab.h"
 #include "htab_private.h"
-#include <stdio.h>
+#include <assert.h>
 
 /**
  * @brief htab_iterator_set_value
@@ -19,11 +19,7 @@
  */ 
 htab_value_t htab_iterator_set_value(htab_iterator_t it, htab_value_t val)
 {
-    if (it.ptr == NULL)
-    {
-        fprintf(stderr,"Error: htab_iterator_set_value: it.ptr is NULL!\n");
-        return 0;
-    }
+    assert(htab_iterator_valid(it));
     it.ptr->data = val;
     return val;
 }

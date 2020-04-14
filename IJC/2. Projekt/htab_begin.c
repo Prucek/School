@@ -17,24 +17,24 @@
  */
 htab_iterator_t htab_begin(const htab_t * t)
 {
-    htab_iterator_t iterator = {.ptr = NULL, .t = NULL , .idx = 0 };
+    htab_iterator_t it = {.ptr = NULL, .t = NULL , .idx = 0 };
 
     if(t == NULL)
     {
         fprintf(stderr,"Error: htab_begin: t is NULL!\n");
-        return iterator;
+        return it;
     }
-    iterator.t = t;
+    it.t = t;
     
     for(size_t i = 0; i< htab_bucket_count(t); i++)
     {
         //find first valid
         if(t->array[i] != NULL)
         {
-            iterator.ptr = t->array[i];
-            iterator.idx = i;
+            it.ptr = t->array[i];
+            it.idx = i;
             break;
         }
     }
-    return iterator;
+    return it;
 }

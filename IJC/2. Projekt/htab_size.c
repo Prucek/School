@@ -13,7 +13,7 @@
  * 
  * @param t Pointer to htab_t
  * 
- * @return Count of nonempty fields in hash table
+ * @return Count of non-empty fields in hash table
  */
 size_t htab_size(const htab_t * t)
 {

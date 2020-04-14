@@ -34,7 +34,7 @@ htab_t *htab_init(size_t n)
     //ititialization of the hash table values
     new_htab->size = 0;
     new_htab->arr_size = n;
-    for (size_t i = 0; i < htab_bucket_count(new_htab); i++)// ??n or new_htab->arr_size??
+    for (size_t i = 0; i < htab_bucket_count(new_htab); i++)
     {
         new_htab->array[i] = NULL;
     }

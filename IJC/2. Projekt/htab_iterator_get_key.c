@@ -5,7 +5,7 @@
 
 #include "htab.h"
 #include "htab_private.h"
-#include <stdio.h>
+#include <assert.h>
 
 /**
  * @brief htab_iterator_get_key
@@ -17,10 +17,6 @@
  */
 htab_key_t htab_iterator_get_key(htab_iterator_t it)
 {
-    if (it.ptr == NULL)
-    {
-        fprintf(stderr,"Error: htab_iterator_get_key: it.ptr is NULL!\n");
-        return NULL;
-    }
+    assert(htab_iterator_valid(it));
     return it.ptr->key;
 }
