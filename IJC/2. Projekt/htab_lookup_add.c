@@ -29,7 +29,7 @@ htab_iterator_t htab_lookup_add(htab_t * t, htab_key_t key)
     //find if exist
     htab_iterator_t it = htab_find(t,key);
 
-    if (it.ptr != NULL)
+    if (htab_iterator_valid(it))
     {
         //look up
         it.ptr->data++;   

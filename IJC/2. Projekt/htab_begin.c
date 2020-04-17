@@ -26,7 +26,7 @@ htab_iterator_t htab_begin(const htab_t * t)
     }
     it.t = t;
     
-    for(size_t i = 0; i< htab_bucket_count(t); i++)
+    for(size_t i = 0; i < htab_bucket_count(t); i++)
     {
         //find first valid
         if(t->array[i] != NULL)

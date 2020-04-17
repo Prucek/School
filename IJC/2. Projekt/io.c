@@ -7,15 +7,15 @@
 
 int get_word(char *s, int max, FILE *f)
 {
-    if(s == NULL || f == NULL || max ==0)
+    if(s == NULL || f == NULL || max == 0)
         return EOF;
 
 	int c;
 	int count = 0;
 	while((c = fgetc(f)) != EOF)
 	{
-        //if count is max or white space was read, add \0 and return   
-        if(count > max || isspace(c))
+        //if white space was read add \0 and return   
+        if(isspace(c))
         {
             //if count is 0, only white space was read => do nothing
             if(count)
@@ -24,10 +24,22 @@ int get_word(char *s, int max, FILE *f)
                 return count;
             }
         }
-        // c is not a white space => add to string 
+        else if (count == max)
+        {
+            //if too long word jump to the end and return  
+            s[count] = '\0';
+            while(c = fgetc(f))
+                if (c == EOF || isspace(c))
+                    break;
+            return max;
+        }
+        //c is not a white space => add to string 
         else 
             s[count++] = c;	
 	}
+    //if before EOF is no \n
+    if(s[0] != '\0')
+        s[count] = '\0';
     //if we didn't finish above return EOF
     return EOF;
 }

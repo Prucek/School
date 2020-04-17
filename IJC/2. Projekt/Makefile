@@ -140,6 +140,7 @@ wordcountcpp: wordcount-.cc
 	g++ $(CPPFALGS) $^ -o $@
 
 wordcount: htab.h wordcount.c libhtab.a io.c
+	ranlib libhtab.a
 	gcc $(CFALGS) -static $^ -L. -lhtab -o $@
 
 wordcount-dynamic: htab.h wordcount.c libhtab.so io.c

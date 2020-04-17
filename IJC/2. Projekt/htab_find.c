@@ -25,7 +25,7 @@ htab_iterator_t htab_find(htab_t * t, htab_key_t key)
         return htab_end(t);
     }
     size_t index = htab_hash_fun(key) % htab_bucket_count(t);
-    htab_iterator_t it = { .t = t, .idx = index};
+    htab_iterator_t it = { .t = t, .idx = index, .ptr = NULL};
 
     if (t->array[index] != NULL)
     {

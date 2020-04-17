@@ -37,7 +37,7 @@ int main(void)
     bool warning = false;
     while((count = get_word(word,MAX,stdin)) != EOF)
     {
-        if(count > MAX && !warning)
+        if(count == MAX && !warning)
         {
             warning = true;
             fprintf(stderr,"Warning: Too long word!\n");
@@ -47,6 +47,9 @@ int main(void)
         if(!htab_iterator_valid(it))
             return 1;
     }
+    //if before EOF is no \n
+    if(word[0] != '\0')
+        htab_lookup_add(ht,word);
 
     //printing of words and and their count
     for(htab_iterator_t it = htab_begin(ht); !htab_iterator_equal(it,htab_end(ht)); it = htab_iterator_next(it))

@@ -28,7 +28,7 @@ htab_iterator_t htab_end(const htab_t * t)
 
     it.t = t;
     
-    for(size_t i = htab_bucket_count(t)-1; i>0; i--)
+    for(size_t i = htab_bucket_count(t)-1; i > 0 ; i--)
     {
         //find last valid
         if(t->array[i] != NULL)
