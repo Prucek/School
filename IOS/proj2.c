@@ -1,57 +1,12 @@
-// 1 noJudge = Semaphore (1)
-// 2 entered = 0
-// 3 checked = 0
-// 4 mutex = Semaphore (1)
-// 5 confirmed = Semaphore (0)
-// #=============================================
-// IMM
-// 1 noJudge . wait ()
-// 2 enter ()
-// 3 entered ++
-// 4 noJudge . signal ()
-// 5
-// 6 mutex . wait ()
-// 7 checkIn ()
-// 8 checked ++
-// 9
-// 10 if judge = 1 and entered == checked :
-// 11 allSignedIn . signal ()
-// # and pass the mutex
-// 12 else :
-// 13 mutex . signal ()
-// 14
-// 15 sitDown ()
-// 16 confirmed . wait ()
-// 17
-// 18 swear ()
-// 19 getCertificate ()
-// 20
-// 21 noJudge . wait ()
-// 22 leave ()
-// 23 noJudge . signal ()
-// #===============================================
-// JUDGE
-// 1 noJudge . wait ()
-// 2 mutex . wait ()
-// 3
-// 4 enter ()
-// 5 judge = 1
-// 6
-// 7 if entered > checked :
-// 8 mutex . signal ()
-// 9 allSignedIn . wait ()
-// # and get the mutex back .
-// 10
-// 11 confirm ()
-// 12 confirmed . signal ( checked )
-// 13 entered = checked = 0
-// 14
-// 15 leave ()
-// 16 judge = 0
-// 17
-// 18 mutex . signal ()
-// 19 noJudge . signal ()
-//=========================================================
+/**
+ * @author Peter Rucek, xrucek00
+ *  
+ * @date 21.4.2020
+ * 
+ * @version 1.5
+ * 
+ * @brief Faneuil Hall Problem Implementation
+ */
 
 #include <stdio.h>
 #include <unistd.h>
@@ -64,13 +19,15 @@
 #include <ctype.h>
 #include <time.h>
 
+//TODO
 int *line_count, *actual_imm_count;
-sem_t *noJudge, *mutex, *allSignedIn, *printing;//, *confirmed;
+sem_t *noJudge, *mutex, *allSignedIn, *printing, *time_sem;//, *confirmed;
 int *entered, *checked;
 bool *isJudge;
 //sem_t *conf_arr;
 
-
+//TODO
+//================================
 typedef struct in_court
 {
     int imm_count;
@@ -87,89 +44,99 @@ typedef struct confirmed
 } confirmed_t;
 
 confirmed_t *c;
+//================================
 
+void random_delay(int base)
+{
+    int ms = (rand() % (base+1))*1000;
+    usleep(ms);
+}
 
-void immigrant(int index)
-{  
+void immigrant(int index,int certificate_delay)
+{                   
     sem_wait(printing);
     printf("%d    : IMM %d    : starts\n",(*line_count)++,index);
     sem_post(printing);
-    sem_wait(noJudge);  // 1 noJudge . wait ()
-    // 2 enter ()
-    (*entered)++;          // 3 entered ++
+
+    sem_wait(noJudge); 
+
+    (*entered)++;
     
     sem_wait(printing);
     printf("%d    : IMM %d    : enters\n",(*line_count)++,index);
     sem_post(printing);
-    //usleep(2000000);
-    sem_post(noJudge);   // 4 noJudge . signal ()
-                        // 5
-    //usleep(2000000);
-    sem_wait(mutex);    // 6 mutex . wait ()
-    // 7 checkIn ()
-    (*checked)++;          // 8 checked ++
-                        // 9
+
+    sem_post(noJudge); 
+
+    sem_wait(mutex); 
+
+    (*checked)++;
     in->index_in_court[index-1] = 1;
     
     sem_wait(printing);
     printf("%d    : IMM %d    : checks\n",(*line_count)++,index);
     sem_post(printing);
-    //usleep(2000000);
-    //printf("Entered %d Checked %d\n",*entered,*checked);
-    if(*isJudge == true && *entered == *checked)   // 10 if judge = 1 and entered == checked :
+
+    if(*isJudge == true && *entered == *checked)
     {
-        sem_post(allSignedIn);  // 11 allSignedIn . signal ()
-        //sem_post(mutex);        // # and pass the mutex
+        sem_post(allSignedIn);
     }
-    else                // 12 else :
-        sem_post(mutex);// 13 mutex . signal ()
-                        // 14
-    // 15 sitDown ()
-    //sem_wait(confirmed);    // 16 confirmed . wait ()
-    printf("%d    : IMM %d    : wants certificate\n",(*line_count)++,index);
-    sem_wait(&(c->conf_arr[index-1]));                   // 17
-    // 18 swear ()
-    // 19 getCertificate ()
-    printf("%d    : IMM %d    : got certificate\n",(*line_count)++,index);
-                        // 20
-    sem_wait(noJudge);  // 21 noJudge . wait ()
+    else 
+        sem_post(mutex);
+   
+    sem_wait(&(c->conf_arr[index-1]));
+
     sem_wait(printing);
-    printf("%d    : IMM %d    : leaves\n",(*line_count)++,index);   // 22 leave ()
+    printf("%d    : IMM %d    : wants certificate\n",(*line_count)++,index);
     sem_post(printing);
-    sem_post(noJudge);  // 23 noJudge . signal ()
+
+    random_delay(certificate_delay);
+
+    sem_wait(printing);
+    printf("%d    : IMM %d    : got certificate\n",(*line_count)++,index);
+    sem_post(printing);
+
+    sem_wait(noJudge);
+    
+    sem_wait(printing);
+    printf("%d    : IMM %d    : leaves\n",(*line_count)++,index);
+    sem_post(printing);
+
+    sem_post(noJudge);
     (*actual_imm_count)--;
 
 }
 
-void judge()
+void judge(int certificate_delay)
 {
-    //usleep(2000000);
     sem_wait(printing);
     printf("%d    : JUDGE    : wants to enter\n",(*line_count)++);
     sem_post(printing);
     
-    sem_wait(noJudge);  // 1noJudge . wait ()
-    sem_wait(mutex);    // 2 mutex . wait ()
-                        // 3
+    sem_wait(noJudge);
+    sem_wait(mutex);  
+
     sem_wait(printing);
-    printf("%d    : JUDGE    : enters\n",(*line_count)++); // 4 enter ()
+    printf("%d    : JUDGE    : enters\n",(*line_count)++);
     sem_post(printing);
-    *isJudge = true;     // 5 judge = 1
-                        // 6
-    //printf("Judge Entered %d Checked %d\n",*entered,*checked);
-    if(*entered > *checked)   // 7 if entered > checked :
+
+    *isJudge = true;  
+
+    if(*entered > *checked)
     {
         sem_wait(printing);
         printf("%d    : JUDGE    : waits for imm\n",(*line_count)++);
         sem_post(printing);
-        sem_post(mutex);    // 8 mutex . signal ()
-        sem_wait(allSignedIn);  // 9 allSignedIn . wait ()
-        //sem_post(mutex);    // # and get the mutex back .
+
+        sem_post(mutex); 
+        sem_wait(allSignedIn);
+
     } 
-                        // 10
-    // 11 confirm ()
+
+    sem_wait(printing);
     printf("%d    : JUDGE    : starts confirmation\n",(*line_count)++);
-    
+    sem_post(printing);
+
     for(int i = 0; i < in->imm_count; i++)
     {
         if(in->index_in_court[i] == 1)
@@ -177,36 +144,40 @@ void judge()
             sem_post(&(c->conf_arr[i]));
         }
     }
-    //sem_post(confirmed);// 12 confirmed . signal ( checked )
-    //sem_post(confirmed);
-    *entered = *checked = 0;  // 13 entered = checked = 0
-                        // 14
+
+    random_delay(certificate_delay);
+
     sem_wait(printing);
-    printf("%d    : JUDGE    : leaves\n",(*line_count)++);   // 15 leave ()
+    printf("%d    : JUDGE    : ends confirmation\n",(*line_count)++);
     sem_post(printing);
-    *isJudge = false;    // 16 judge = 0
-                        // 17
+
+    *entered = *checked = 0; 
+
+    random_delay(certificate_delay);
+
+    sem_wait(printing);
+    printf("%d    : JUDGE    : leaves\n",(*line_count)++);
+    sem_post(printing);
+
+    *isJudge = false;
     
-    sem_post(mutex);    // 18 mutex . signal ()
-    sem_post(noJudge);  // 19 noJudge . signal ()
-    //sem_wait(confirmed);
+    sem_post(mutex);
+    sem_post(noJudge);
 }
 
 
 
-void create_immigrants(int number_of_imm, int delay)
+void create_immigrants(int number_of_imm, int delay, int certificate_delay)
 {
     for(int i = 1; i <= number_of_imm; i++)
     {    
-        
         pid_t pid = fork();
-        srand(time(NULL));
-        int ms = (rand() % (delay+1))*1000;
-        usleep(ms);
+        srand(time(0)); //KEEP
+        if(!delay)
+            random_delay(delay);
         if (pid == 0) 
-        {        
-                
-            immigrant(i);
+        {                     
+            immigrant(i,certificate_delay);
             exit(0);
         }
     }
@@ -220,17 +191,17 @@ void delete_immigrants(int number_of_imm)
 }
 
 
-void judge_process(int delay)
+void judge_process(int delay, int certificate_delay)
 {
+    srand(time(0)); //KEEP
     while (*actual_imm_count)
     {
         if(!(*actual_imm_count))
             break;
-        int ms = (rand() % (delay+1))*1000;
-        usleep(ms);
+        random_delay(delay);
         if(!(*actual_imm_count))
             break;
-        judge();
+        judge(certificate_delay);
     }
     printf("%d    : JUDGE    : finishes\n",(*line_count)++);
     exit(0);
@@ -249,6 +220,7 @@ bool isUInt(char number[])
 
 int main(int argc, char *argv[])
 {
+    //TODO
     line_count = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
                                          MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     *line_count = 1;
@@ -263,8 +235,8 @@ int main(int argc, char *argv[])
                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     mutex = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
                                       MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    //confirmed = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
-    //                                      MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    //time_sem = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
+    //                                     MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     isJudge = mmap(NULL, sizeof(bool), PROT_WRITE | PROT_READ,
                                        MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     *isJudge = false;
@@ -274,13 +246,14 @@ int main(int argc, char *argv[])
     printing = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
                                          MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
+    //TODO
     sem_init(noJudge, 1, 1);
     sem_init(mutex, 1, 1);
-    //sem_init(confirmed, 1, 0);
+    //sem_init(time_sem, 1, 1);
     sem_init(allSignedIn, 1, 0);
     sem_init(printing, 1, 1);
 
-    srand(time(NULL));
+    
     printf("OK\n");
 
     //checking arguments
@@ -291,6 +264,7 @@ int main(int argc, char *argv[])
             return 1;
     printf("OK\n");
 
+    //TODO
     int imm_count = strtol(argv[1],NULL,10);
     actual_imm_count = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
                                                MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -311,8 +285,8 @@ int main(int argc, char *argv[])
 
     printf("OK\n");
 
-
- //=======================   
+ //=======================  
+ //TODO 
     c = mmap(NULL, sizeof(confirmed_t)+sizeof(sem_t)*imm_count, PROT_WRITE | PROT_READ,
                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     for(int i = 0; i < imm_count; i++)
@@ -327,13 +301,15 @@ int main(int argc, char *argv[])
     } 
     in->imm_count = imm_count;
 //=======================
+
+//TODO
     pid_t child1, child2;
 
     child1 = fork();
 
     if (child1 == 0) 
     {
-        judge_process(ju_delay);
+        judge_process(ju_delay,ti_ju_delay);
     } 
     else 
     {
@@ -341,13 +317,16 @@ int main(int argc, char *argv[])
 
         if (child2 == 0) 
         {
-            create_immigrants(imm_count,im_delay);
+            create_immigrants(imm_count,im_delay,ti_im_delay);
         } else 
         {
             /* Parent Code */
         }
     }
 
+
+//TODO
+//=======================================================
     delete_immigrants(imm_count);
     wait(&child1);
     wait(&child2);
@@ -358,7 +337,7 @@ int main(int argc, char *argv[])
 
     sem_destroy(noJudge);
     sem_destroy(mutex);
-    //sem_destroy(confirmed);
+    //sem_destroy(time_sem);
     sem_destroy(allSignedIn);
     sem_destroy(printing);
 
@@ -371,9 +350,11 @@ int main(int argc, char *argv[])
 
     munmap(noJudge,sizeof(sem_t));
     munmap(mutex,sizeof(sem_t));
-    //munmap(confirmed,sizeof(sem_t));
+    //munmap(time_sem,sizeof(sem_t));
     munmap(allSignedIn,sizeof(sem_t));
     munmap(printing,sizeof(sem_t));
+
+//=======================================================
 
     return 0;
 }
