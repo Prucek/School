@@ -4,6 +4,7 @@
 // 4 mutex = Semaphore (1)
 // 5 confirmed = Semaphore (0)
 // #=============================================
+// IMM
 // 1 noJudge . wait ()
 // 2 enter ()
 // 3 entered ++
@@ -29,6 +30,7 @@
 // 22 leave ()
 // 23 noJudge . signal ()
 // #===============================================
+// JUDGE
 // 1 noJudge . wait ()
 // 2 mutex . wait ()
 // 3
@@ -49,37 +51,6 @@
 // 17
 // 18 mutex . signal ()
 // 19 noJudge . signal ()
-
-// #===============================================
-// $ ./proj2 PI IG JG IT JT
-// kde
-// • PI je poˇcet procesu vygenerovaných v kategorii p ˚ ˇristˇehovalcu; bude postupn ˚ ˇe vytvoˇreno PI
-// immigrants.
-// P >= 1
-// • IG je maximální hodnota doby (v milisekundách), po které je generován nový proces immigrant.
-// IG >= 0 && IG <= 2000.
-// • JG je maximální hodnota doby (v milisekundách), po které soudce opˇet vstoupí do budovy.
-// JG >= 0 && JG <= 2000.
-// • IT je maximální hodnota doby (v milisekundách), která simuluje trvání vyzvedávání certifikátu
-// pˇristˇehovalcem.
-// IT >= 0 && IT <= 2000.
-// • JT je maximální hodnota doby (v milisekundách), která simuluje trvání vydávání rozhodnutí
-// soudcem.
-// JT >= 0 && JT <= 2000.
-// • Všechny parametry jsou celá ˇcís
-// #===============================================
-// pid=fork();
-// if (pid==0) {
-// // k´od pro proces potomka
-// // exec(....), exit(exitcode)
-// } else if (pid==-1) {
-// // k´od pro rodiˇce, nastala chyba pˇri fork()
-// // errno obsahuje bliˇzˇs´ı informace
-// } else {
-// // k´od pro rodiˇce, pid = PID potomka
-// // pid2 = wait(&stav);
-// }
-
 //=========================================================
 
 #include <stdio.h>
@@ -91,8 +62,179 @@
 #include <sys/mman.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <time.h>
+
+int *line_count, *actual_imm_count;
+sem_t *noJudge, *mutex, *allSignedIn, *printing;//, *confirmed;
+int *entered, *checked;
+bool *isJudge;
+//sem_t *conf_arr;
 
 
+typedef struct in_court
+{
+    int imm_count;
+    int index_in_court[];
+} in_court_t;
+
+in_court_t *in;
+
+typedef struct confirmed
+{
+    int blah;
+    sem_t conf_arr[];
+
+} confirmed_t;
+
+confirmed_t *c;
+
+
+void immigrant(int index)
+{  
+    sem_wait(printing);
+    printf("%d    : IMM %d    : starts\n",(*line_count)++,index);
+    sem_post(printing);
+    sem_wait(noJudge);  // 1 noJudge . wait ()
+    // 2 enter ()
+    (*entered)++;          // 3 entered ++
+    
+    sem_wait(printing);
+    printf("%d    : IMM %d    : enters\n",(*line_count)++,index);
+    sem_post(printing);
+    //usleep(2000000);
+    sem_post(noJudge);   // 4 noJudge . signal ()
+                        // 5
+    //usleep(2000000);
+    sem_wait(mutex);    // 6 mutex . wait ()
+    // 7 checkIn ()
+    (*checked)++;          // 8 checked ++
+                        // 9
+    in->index_in_court[index-1] = 1;
+    
+    sem_wait(printing);
+    printf("%d    : IMM %d    : checks\n",(*line_count)++,index);
+    sem_post(printing);
+    //usleep(2000000);
+    //printf("Entered %d Checked %d\n",*entered,*checked);
+    if(*isJudge == true && *entered == *checked)   // 10 if judge = 1 and entered == checked :
+    {
+        sem_post(allSignedIn);  // 11 allSignedIn . signal ()
+        //sem_post(mutex);        // # and pass the mutex
+    }
+    else                // 12 else :
+        sem_post(mutex);// 13 mutex . signal ()
+                        // 14
+    // 15 sitDown ()
+    //sem_wait(confirmed);    // 16 confirmed . wait ()
+    printf("%d    : IMM %d    : wants certificate\n",(*line_count)++,index);
+    sem_wait(&(c->conf_arr[index-1]));                   // 17
+    // 18 swear ()
+    // 19 getCertificate ()
+    printf("%d    : IMM %d    : got certificate\n",(*line_count)++,index);
+                        // 20
+    sem_wait(noJudge);  // 21 noJudge . wait ()
+    sem_wait(printing);
+    printf("%d    : IMM %d    : leaves\n",(*line_count)++,index);   // 22 leave ()
+    sem_post(printing);
+    sem_post(noJudge);  // 23 noJudge . signal ()
+    (*actual_imm_count)--;
+
+}
+
+void judge()
+{
+    //usleep(2000000);
+    sem_wait(printing);
+    printf("%d    : JUDGE    : wants to enter\n",(*line_count)++);
+    sem_post(printing);
+    
+    sem_wait(noJudge);  // 1noJudge . wait ()
+    sem_wait(mutex);    // 2 mutex . wait ()
+                        // 3
+    sem_wait(printing);
+    printf("%d    : JUDGE    : enters\n",(*line_count)++); // 4 enter ()
+    sem_post(printing);
+    *isJudge = true;     // 5 judge = 1
+                        // 6
+    //printf("Judge Entered %d Checked %d\n",*entered,*checked);
+    if(*entered > *checked)   // 7 if entered > checked :
+    {
+        sem_wait(printing);
+        printf("%d    : JUDGE    : waits for imm\n",(*line_count)++);
+        sem_post(printing);
+        sem_post(mutex);    // 8 mutex . signal ()
+        sem_wait(allSignedIn);  // 9 allSignedIn . wait ()
+        //sem_post(mutex);    // # and get the mutex back .
+    } 
+                        // 10
+    // 11 confirm ()
+    printf("%d    : JUDGE    : starts confirmation\n",(*line_count)++);
+    
+    for(int i = 0; i < in->imm_count; i++)
+    {
+        if(in->index_in_court[i] == 1)
+        {
+            sem_post(&(c->conf_arr[i]));
+        }
+    }
+    //sem_post(confirmed);// 12 confirmed . signal ( checked )
+    //sem_post(confirmed);
+    *entered = *checked = 0;  // 13 entered = checked = 0
+                        // 14
+    sem_wait(printing);
+    printf("%d    : JUDGE    : leaves\n",(*line_count)++);   // 15 leave ()
+    sem_post(printing);
+    *isJudge = false;    // 16 judge = 0
+                        // 17
+    
+    sem_post(mutex);    // 18 mutex . signal ()
+    sem_post(noJudge);  // 19 noJudge . signal ()
+    //sem_wait(confirmed);
+}
+
+
+
+void create_immigrants(int number_of_imm, int delay)
+{
+    for(int i = 1; i <= number_of_imm; i++)
+    {    
+        
+        pid_t pid = fork();
+        srand(time(NULL));
+        int ms = (rand() % (delay+1))*1000;
+        usleep(ms);
+        if (pid == 0) 
+        {        
+                
+            immigrant(i);
+            exit(0);
+        }
+    }
+}
+
+
+void delete_immigrants(int number_of_imm)
+{
+   for(int i = 0; i < number_of_imm; i++)
+        wait(NULL);
+}
+
+
+void judge_process(int delay)
+{
+    while (*actual_imm_count)
+    {
+        if(!(*actual_imm_count))
+            break;
+        int ms = (rand() % (delay+1))*1000;
+        usleep(ms);
+        if(!(*actual_imm_count))
+            break;
+        judge();
+    }
+    printf("%d    : JUDGE    : finishes\n",(*line_count)++);
+    exit(0);
+}
 
 bool isUInt(char number[])
 {
@@ -107,6 +249,40 @@ bool isUInt(char number[])
 
 int main(int argc, char *argv[])
 {
+    line_count = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
+                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    *line_count = 1;
+    entered = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
+                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    *entered = 0;
+    checked = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
+                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    *checked = 0;
+
+    noJudge = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
+                                        MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    mutex = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
+                                      MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    //confirmed = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
+    //                                      MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    isJudge = mmap(NULL, sizeof(bool), PROT_WRITE | PROT_READ,
+                                       MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    *isJudge = false;
+    allSignedIn = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
+                                            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+    printing = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
+                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
+    sem_init(noJudge, 1, 1);
+    sem_init(mutex, 1, 1);
+    //sem_init(confirmed, 1, 0);
+    sem_init(allSignedIn, 1, 0);
+    sem_init(printing, 1, 1);
+
+    srand(time(NULL));
+    printf("OK\n");
+
     //checking arguments
     if (argc != 6)
         return 1;
@@ -115,7 +291,10 @@ int main(int argc, char *argv[])
             return 1;
     printf("OK\n");
 
-    int imigrants_count = strtol(argv[1],NULL,10);
+    int imm_count = strtol(argv[1],NULL,10);
+    actual_imm_count = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
+                                               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    *actual_imm_count = imm_count;
 
     int im_delay = strtol(argv[2],NULL,10);     //max time to generate new imigrant 
     if(!(im_delay >= 0 && im_delay <= 2000))
@@ -133,110 +312,68 @@ int main(int argc, char *argv[])
     printf("OK\n");
 
 
+ //=======================   
+    c = mmap(NULL, sizeof(confirmed_t)+sizeof(sem_t)*imm_count, PROT_WRITE | PROT_READ,
+                                        MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    for(int i = 0; i < imm_count; i++)
+    {
+        sem_init(&(c->conf_arr[i]),1,0);
+    }
+    in = mmap(NULL, sizeof(in_court_t)+sizeof(int)*imm_count, PROT_WRITE | PROT_READ,
+                                        MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    for(int i = 0; i < imm_count; i++)
+    {
+        in->index_in_court[i] = 0;
+    } 
+    in->imm_count = imm_count;
+//=======================
+    pid_t child1, child2;
 
+    child1 = fork();
 
-    sem_t *sem = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ, 
-                                           MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    sem_init(sem, 1, 1);
+    if (child1 == 0) 
+    {
+        judge_process(ju_delay);
+    } 
+    else 
+    {
+        child2 = fork();
 
-    for(int i = 0; i < imigrants_count; i++)
-    { 
-        pid_t pid = fork();
-        if (pid == 0) 
+        if (child2 == 0) 
         {
-            sem_wait(sem);
-
-            printf("Starting\n");
-            usleep(100000);
-            //critical section
-            //printf("Proces: %d\n",getpid());
-            
-
-            printf("    Exiting...\n");
-
-            sem_post(sem);
-            exit(0);
-
-        } 
-        else 
+            create_immigrants(imm_count,im_delay);
+        } else 
         {
-            //printf("Main process\n");
+            /* Parent Code */
         }
     }
 
-    for(int i = 0; i < imigrants_count; i++) 
-        wait(NULL);
+    delete_immigrants(imm_count);
+    wait(&child1);
+    wait(&child2);
 
-    sem_destroy(sem);
+    munmap(line_count,sizeof(int));
+    munmap(isJudge,sizeof(bool));
+    munmap(actual_imm_count,sizeof(int));
 
-    munmap(sem,sizeof(sem_t));
+    sem_destroy(noJudge);
+    sem_destroy(mutex);
+    //sem_destroy(confirmed);
+    sem_destroy(allSignedIn);
+    sem_destroy(printing);
+
+    for(int i = 0; i < imm_count; i++)
+    {
+        sem_destroy(&(c->conf_arr[i]));
+    }
+    munmap(c,sizeof(confirmed_t)+sizeof(sem_t)*imm_count);
+    munmap(in,sizeof(in_court_t)+sizeof(int)*imm_count);
+
+    munmap(noJudge,sizeof(sem_t));
+    munmap(mutex,sizeof(sem_t));
+    //munmap(confirmed,sizeof(sem_t));
+    munmap(allSignedIn,sizeof(sem_t));
+    munmap(printing,sizeof(sem_t));
 
     return 0;
 }
-
-//=========================================================
-
-// Using mmap you can create a shared memory block in your parent process. This is a basic example removing error checking for brevity.
-
-// You want to sure the proper protections and flags are set for your needs. Then hand off the address returned by mmap to your child process.
-
-// #include <stdio.h>
-// #include <stdlib.h>
-// #include <sys/mman.h>
-// #include <sys/wait.h>
-// #include <unistd.h>
-
-// #define LIMIT_MAP 5
-
-// void child_worker(void *map)
-// {
-//     int map_value = -1;
-//     int idx = 0;
-
-//     while (map_value != LIMIT_MAP) {
-//         map_value = *((int *) map + (idx * sizeof(int)));
-//         printf("Map value: %d\n", map_value);
-//         idx++;
-//         sleep(2);
-//     }
-// }
-
-// int main(void)
-// {
-//     printf("Starting Parent Process...\n");
-
-//     long page_size = sysconf(_SC_PAGESIZE);
-
-//     void *memory_map = mmap(0, page_size, PROT_WRITE | PROT_READ, 
-//                                           MAP_SHARED | MAP_ANONYMOUS, 0, 0);
-
-//     printf("Memory map created: <%p>\n", memory_map);
-
-//     pid_t pid = fork();
-
-//     if (pid == 0) {
-//         sleep(1);
-//         printf("Starting child process\n");
-//         child_worker(memory_map);
-//         printf("Exiting child process...\n");
-//         return 0;
-
-//     } else {
-
-//         printf("Continuing in parent process\n");
-
-//         int set_values[5] = { 1, 2, 3, 4, 5 };
-
-//         for (int i=0; i < 5; i++) {
-//             printf("Setting value: %d\n", set_values[i]);
-//             *((int *) memory_map + (sizeof(int) * i)) = set_values[i];
-//             sleep(1);
-//         }
-
-//         waitpid(pid, NULL, 0);
-
-//         printf("Child process is finished!\n");
-//     }
-
-//     return 0;
-// }
