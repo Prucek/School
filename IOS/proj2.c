@@ -1,3 +1,5 @@
+
+ 
 /**
  * @author Peter Rucek, xrucek00
  *  
@@ -20,21 +22,27 @@
 #include <time.h>
 
 //TODO
-int *line_count, *actual_imm_count;
-sem_t *noJudge, *mutex, *allSignedIn, *printing, *time_sem;//, *confirmed;
-int *entered, *checked;
-bool *isJudge;
+int *line_count;//, *actual_imm_count;
+sem_t *noJudge, *mutex, *allSignedIn, *printing, *allOut;
+//int *entered, *checked;
+//bool *isJudge;
 //sem_t *conf_arr;
 
 //TODO
 //================================
-typedef struct in_court
+typedef struct hall
 {
+    int entered;
+    int checked;
+    int actual_imm_count;
+    int waiting_for_registration;
+    int go_out_before_judge_comes;
     int imm_count;
+    bool isJudge;
     int index_in_court[];
-} in_court_t;
+} court;
 
-in_court_t *in;
+court *fh;
 
 typedef struct confirmed
 {
@@ -60,24 +68,25 @@ void immigrant(int index,int certificate_delay)
 
     sem_wait(noJudge); 
 
-    (*entered)++;
+    fh->entered++;
+    fh->waiting_for_registration++;
     
     sem_wait(printing);
-    printf("%d    : IMM %d    : enters\n",(*line_count)++,index);
+    printf("%d    : IMM %d    : enters :%d:%d:%d\n",(*line_count)++,index,fh->waiting_for_registration,fh->checked,fh->entered);
     sem_post(printing);
 
     sem_post(noJudge); 
 
     sem_wait(mutex); 
 
-    (*checked)++;
-    in->index_in_court[index-1] = 1;
+    fh->checked++;
+    fh->index_in_court[index-1] = 1;
     
     sem_wait(printing);
-    printf("%d    : IMM %d    : checks\n",(*line_count)++,index);
+    printf("%d    : IMM %d    : checks :%d:%d:%d\n",(*line_count)++,index,fh->waiting_for_registration,fh->checked,fh->entered);
     sem_post(printing);
 
-    if(*isJudge == true && *entered == *checked)
+    if(fh->isJudge == true && fh->entered == fh->checked)
     {
         sem_post(allSignedIn);
     }
@@ -87,45 +96,58 @@ void immigrant(int index,int certificate_delay)
     sem_wait(&(c->conf_arr[index-1]));
 
     sem_wait(printing);
-    printf("%d    : IMM %d    : wants certificate\n",(*line_count)++,index);
+    printf("%d    : IMM %d    : wants certificate :%d:%d:%d\n",(*line_count)++,index,fh->waiting_for_registration,fh->checked,fh->entered);
     sem_post(printing);
 
     random_delay(certificate_delay);
 
     sem_wait(printing);
-    printf("%d    : IMM %d    : got certificate\n",(*line_count)++,index);
+    printf("%d    : IMM %d    : got certificate :%d:%d:%d\n",(*line_count)++,index,fh->waiting_for_registration,fh->checked,fh->entered);
     sem_post(printing);
 
     sem_wait(noJudge);
     
     sem_wait(printing);
-    printf("%d    : IMM %d    : leaves\n",(*line_count)++,index);
+    printf("%d    : IMM %d    : leaves :%d:%d:%d\n",(*line_count)++,index,fh->waiting_for_registration,fh->checked,fh->entered);
     sem_post(printing);
 
-    sem_post(noJudge);
-    (*actual_imm_count)--;
+    fh->actual_imm_count--;
+    fh->entered--;
+    fh->go_out_before_judge_comes--;
 
+    sem_post(noJudge);
+
+    if(fh->go_out_before_judge_comes == 0)
+    {
+        sem_post(allOut);
+    }
+    
 }
 
 void judge(int certificate_delay)
 {
+
     sem_wait(printing);
     printf("%d    : JUDGE    : wants to enter\n",(*line_count)++);
     sem_post(printing);
     
+    if(fh->go_out_before_judge_comes != 0)
+        sem_wait(allOut);
+
     sem_wait(noJudge);
     sem_wait(mutex);  
 
     sem_wait(printing);
-    printf("%d    : JUDGE    : enters\n",(*line_count)++);
+    printf("%d    : JUDGE    : enters :%d:%d:%d\n",(*line_count)++,fh->waiting_for_registration,fh->checked,fh->entered);
     sem_post(printing);
 
-    *isJudge = true;  
+    fh->isJudge = true;  
+    fh->go_out_before_judge_comes = fh->entered;
 
-    if(*entered > *checked)
+    if(fh->entered > fh->checked)
     {
         sem_wait(printing);
-        printf("%d    : JUDGE    : waits for imm\n",(*line_count)++);
+        printf("%d    : JUDGE    : waits for imm :%d:%d:%d\n",(*line_count)++,fh->waiting_for_registration,fh->checked,fh->entered);
         sem_post(printing);
 
         sem_post(mutex); 
@@ -134,12 +156,12 @@ void judge(int certificate_delay)
     } 
 
     sem_wait(printing);
-    printf("%d    : JUDGE    : starts confirmation\n",(*line_count)++);
+    printf("%d    : JUDGE    : starts confirmation :%d:%d:%d\n",(*line_count)++,fh->waiting_for_registration,fh->checked,fh->entered);
     sem_post(printing);
 
-    for(int i = 0; i < in->imm_count; i++)
+    for(int i = 0; i < fh->imm_count; i++)
     {
-        if(in->index_in_court[i] == 1)
+        if(fh->index_in_court[i] == 1)
         {
             sem_post(&(c->conf_arr[i]));
         }
@@ -147,19 +169,22 @@ void judge(int certificate_delay)
 
     random_delay(certificate_delay);
 
-    sem_wait(printing);
-    printf("%d    : JUDGE    : ends confirmation\n",(*line_count)++);
-    sem_post(printing);
+    
 
-    *entered = *checked = 0; 
+    sem_wait(printing);
+    fh->waiting_for_registration = 0;
+    fh->checked = 0; 
+    printf("%d    : JUDGE    : ends confirmation :%d:%d:%d\n",(*line_count)++,fh->waiting_for_registration,fh->checked,fh->entered);
+    sem_post(printing);
+    
 
     random_delay(certificate_delay);
 
     sem_wait(printing);
-    printf("%d    : JUDGE    : leaves\n",(*line_count)++);
+    printf("%d    : JUDGE    : leaves :%d:%d:%d\n",(*line_count)++,fh->waiting_for_registration,fh->checked,fh->entered);
     sem_post(printing);
 
-    *isJudge = false;
+    fh->isJudge = false;
     
     sem_post(mutex);
     sem_post(noJudge);
@@ -194,12 +219,10 @@ void delete_immigrants(int number_of_imm)
 void judge_process(int delay, int certificate_delay)
 {
     srand(time(0)); //KEEP
-    while (*actual_imm_count)
+    while (fh->actual_imm_count)
     {
-        if(!(*actual_imm_count))
-            break;
         random_delay(delay);
-        if(!(*actual_imm_count))
+        if(!(fh->actual_imm_count))
             break;
         judge(certificate_delay);
     }
@@ -224,34 +247,27 @@ int main(int argc, char *argv[])
     line_count = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
                                          MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     *line_count = 1;
-    entered = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
-                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    *entered = 0;
-    checked = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
-                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    *checked = 0;
 
     noJudge = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     mutex = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
                                       MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    //time_sem = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
-    //                                     MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    isJudge = mmap(NULL, sizeof(bool), PROT_WRITE | PROT_READ,
-                                       MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    *isJudge = false;
+
     allSignedIn = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
                                             MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
     printing = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
                                          MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
+    allOut = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
+                                       MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+
     //TODO
     sem_init(noJudge, 1, 1);
     sem_init(mutex, 1, 1);
-    //sem_init(time_sem, 1, 1);
     sem_init(allSignedIn, 1, 0);
     sem_init(printing, 1, 1);
+    sem_init(allOut,1,0);
 
     
     printf("OK\n");
@@ -266,9 +282,9 @@ int main(int argc, char *argv[])
 
     //TODO
     int imm_count = strtol(argv[1],NULL,10);
-    actual_imm_count = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
-                                               MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    *actual_imm_count = imm_count;
+    // actual_imm_count = mmap(NULL, sizeof(int), PROT_WRITE | PROT_READ,
+    //                                            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    // *actual_imm_count = imm_count;
 
     int im_delay = strtol(argv[2],NULL,10);     //max time to generate new imigrant 
     if(!(im_delay >= 0 && im_delay <= 2000))
@@ -293,13 +309,19 @@ int main(int argc, char *argv[])
     {
         sem_init(&(c->conf_arr[i]),1,0);
     }
-    in = mmap(NULL, sizeof(in_court_t)+sizeof(int)*imm_count, PROT_WRITE | PROT_READ,
+    fh = mmap(NULL, sizeof(court)+sizeof(int)*imm_count, PROT_WRITE | PROT_READ,
                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     for(int i = 0; i < imm_count; i++)
     {
-        in->index_in_court[i] = 0;
+        fh->index_in_court[i] = 0;
     } 
-    in->imm_count = imm_count;
+    fh->imm_count = imm_count;
+    fh->entered = 0;
+    fh->checked =0;
+    fh->isJudge = false;
+    fh->actual_imm_count = imm_count;
+    fh->waiting_for_registration = 0;
+    fh->go_out_before_judge_comes = 0;
 //=======================
 
 //TODO
@@ -332,27 +354,26 @@ int main(int argc, char *argv[])
     wait(&child2);
 
     munmap(line_count,sizeof(int));
-    munmap(isJudge,sizeof(bool));
-    munmap(actual_imm_count,sizeof(int));
+    //munmap(actual_imm_count,sizeof(int));
 
     sem_destroy(noJudge);
     sem_destroy(mutex);
-    //sem_destroy(time_sem);
     sem_destroy(allSignedIn);
     sem_destroy(printing);
+    sem_destroy(allOut);
 
     for(int i = 0; i < imm_count; i++)
     {
         sem_destroy(&(c->conf_arr[i]));
     }
     munmap(c,sizeof(confirmed_t)+sizeof(sem_t)*imm_count);
-    munmap(in,sizeof(in_court_t)+sizeof(int)*imm_count);
+    munmap(fh,sizeof(court)+sizeof(int)*imm_count);
 
     munmap(noJudge,sizeof(sem_t));
     munmap(mutex,sizeof(sem_t));
-    //munmap(time_sem,sizeof(sem_t));
     munmap(allSignedIn,sizeof(sem_t));
     munmap(printing,sizeof(sem_t));
+    munmap(allOut,sizeof(sem_t));
 
 //=======================================================
 
