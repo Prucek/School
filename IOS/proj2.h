@@ -25,9 +25,7 @@
 #include <ctype.h>
 #include <time.h>
 
-#include <errno.h>
-#include <string.h>
-
+#define EXIT_ERROR -1
 
 typedef struct court
 {
@@ -64,7 +62,9 @@ bool isUInt(char number[]);
 void semaphores_constructor();
 void semaphores_destructor();
 void court_constructor(int imm_count);
-void shared_memory_constructor(int imm_count);
+int shared_memory_constructor(int imm_count);
 void shared_memory_destructor(int imm_count);
+int chceck_argument(char* arg);
+int chceck_imm_count(char *arg);
 
 #endif //__PROJ2_H__

@@ -29,7 +29,7 @@ void judge_process(int delay, int certificate_delay)
         fprintf(fd,"%d    : JUDGE    : finishes\n",(*line_count)++);
     unlock_data_and_printing();
 
-    exit(0);
+    exit(EXIT_SUCCESS);
 }
 
 

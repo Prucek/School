@@ -25,21 +25,19 @@ int imm_generator(int delay, int certificate_delay)
         if (pid == 0) 
         {                     
             immigrant(certificate_delay);
-            exit(0);
+            exit(EXIT_SUCCESS);
         }
         if(pid == -1)
         {
-            //TODO
+            fh->imm_count = fh->entered;
             fh->waiting_in_queue = 0;
             sleep(1);
-            fprintf(stdout,"ERROR: %s\n", strerror(errno));
-            delete_immigrants();
-            exit(1); //TODO
-            return -1 ;
+            fprintf(stderr,"ERROR: Fork failed!\n");
+            return EXIT_ERROR ;
         }     
     }
     delete_immigrants();
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 
