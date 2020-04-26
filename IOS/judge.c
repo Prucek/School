@@ -3,9 +3,9 @@
  * 
  * @author Peter Rucek, xrucek00
  *  
- * @date 24.4.2020
+ * @date 26.4.2020
  * 
- * @version 3.0
+ * @version 3.1
  * 
  * @brief IOS 2. Project 
  * Faneuil Hall Problem Implementation
@@ -17,10 +17,10 @@
 
 void judge_process(int delay, int certificate_delay)
 {
-    while (fh->waiting_in_queue != 0)
+    while (imm->waiting_in_queue != 0)
     {
         random_delay(delay);
-        if(fh->waiting_in_queue == 0)
+        if(imm->waiting_in_queue == 0)
             break;
         judge_lifecycle(certificate_delay);
     }
@@ -35,14 +35,14 @@ void judge_process(int delay, int certificate_delay)
 
 void judge_lifecycle(int certificate_delay)
 {
-    if(fh->waiting_in_queue <= 0)
+    if(imm->waiting_in_queue <= 0)
         return;
 
     wants_to_enter();
     
     waiting_for_immigrants_to_leave();
         
-    if(fh->waiting_in_queue <= 0)
+    if(imm->waiting_in_queue <= 0)
         return;    
 
     sem_wait(noJudge);
@@ -80,6 +80,9 @@ void wants_to_enter()
 
 void waiting_for_immigrants_to_leave()
 {
+    //judge can not enter before all immigrants with certificate leave, 
+    //because then the judge will wait for all entered to check, but if there 
+    //are immigrants that already have certificate, this never happens
     if(fh->go_out_before_judge_comes != 0 )
     {
         lock_data_and_printing();
@@ -127,9 +130,10 @@ void starts_confirmation()
 
 void confirmation(int certificate_delay)
 {
-     for(int i = 0; i < fh->imm_count; i++)
+    //opens the semaphores of the immigrants in court
+    for(int i = 0; i < imm->imm_count; i++)
     {
-        if(fh->index_in_court[i] == 1)
+        if(fh->index_in_court[i] == true)
         {
             sem_post(&(imm->confirmed[i]));
         }

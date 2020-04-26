@@ -3,9 +3,9 @@
  * 
  * @author Peter Rucek, xrucek00
  *  
- * @date 24.4.2020
+ * @date 26.4.2020
  * 
- * @version 3.0
+ * @version 3.1
  * 
  * @brief IOS 2. Project 
  * Faneuil Hall Problem Implementation
@@ -17,8 +17,7 @@
 #include "immigrants.h"
 
 int main(int argc, char *argv[])
-{
-    
+{   
     //checking arguments
     if (argc != 6)
     {
@@ -26,11 +25,11 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
         
-    int imm_count = chceck_imm_count(argv[1]);
-    int imm_delay = chceck_argument(argv[2]);
-    int ju_delay = chceck_argument(argv[3]);
-    int imm_cert_delay = chceck_argument(argv[4]);
-    int ju_cert_delay = chceck_argument(argv[5]);
+    int imm_count = check_imm_count(argv[1]);
+    int imm_delay = check_argument(argv[2]);
+    int ju_delay = check_argument(argv[3]);
+    int imm_cert_delay = check_argument(argv[4]);
+    int ju_cert_delay = check_argument(argv[5]);
 
     if(imm_count == EXIT_ERROR|| imm_delay == EXIT_ERROR|| ju_delay == EXIT_ERROR|| 
                         imm_cert_delay == EXIT_ERROR || ju_cert_delay == EXIT_ERROR)
@@ -40,7 +39,7 @@ int main(int argc, char *argv[])
     }
         
 
-    //alloccing shared memory
+    //maps shared memory
     if(shared_memory_constructor(imm_count) == EXIT_ERROR)
         return EXIT_FAILURE;
 
@@ -69,11 +68,12 @@ int main(int argc, char *argv[])
         {
             if(imm_generator(imm_delay,imm_cert_delay) == EXIT_ERROR)
             {
+                //fork failed
                 wait(&child1);
                 wait(&child2);
                 semaphores_destructor();
                 shared_memory_destructor(imm_count);
-                kill(-getppid(), SIGINT); //TODO
+                kill(-getppid(), SIGKILL);
                 return EXIT_FAILURE;
             }
                 
@@ -88,11 +88,13 @@ int main(int argc, char *argv[])
 
     semaphores_destructor();
 
-    //freeing alloccated memory
+    //unmaps alloccated memory
     shared_memory_destructor(imm_count);
 
     return EXIT_SUCCESS;
 }
+
+
 
 void random_delay(int base)
 {
@@ -107,7 +109,7 @@ void random_delay(int base)
 
 void lock_data_and_printing()
 {
-    sem_wait(printing);
+    sem_wait(data);
     fd = fopen("proj2.out","a+");
 }
 
@@ -115,13 +117,13 @@ void lock_data_and_printing()
 void unlock_data_and_printing()
 {
     fclose(fd);
-    sem_post(printing);
+    sem_post(data);
 }
 
 
-int chceck_argument(char* arg)
+int check_argument(char* arg)
 {
-    if(!isUInt(arg))
+    if(!is_uint(arg))
         return EXIT_ERROR;
     int result = strtol(arg,NULL,10);
     if(!(result >= 0 && result <= 2000))
@@ -129,9 +131,9 @@ int chceck_argument(char* arg)
     return result;
 }
 
-int chceck_imm_count(char *arg)
+int check_imm_count(char *arg)
 {
-    if(!isUInt(arg))
+    if(!is_uint(arg))
         return EXIT_ERROR;
     int result = strtol(arg,NULL,10);
     if(!(result >= 1))
@@ -139,7 +141,7 @@ int chceck_imm_count(char *arg)
     return result;
 }
 
-bool isUInt(char number[])
+bool is_uint(char number[])
 {
     for (int i = 0; number[i] != 0; i++)
         if (!isdigit(number[i]))
@@ -154,10 +156,10 @@ void semaphores_constructor()
     sem_init(noJudge, 1, 1);
     sem_init(mutex, 1, 1);
     sem_init(allSignedIn, 1, 0);
-    sem_init(printing, 1, 1);
+    sem_init(data, 1, 1);
     sem_init(allOut,1,0);
 
-    for(int i = 0; i < fh->imm_count; i++)
+    for(int i = 0; i < imm->imm_count; i++)
     {
         sem_init(&(imm->confirmed[i]),1,0);
     }
@@ -169,10 +171,10 @@ void semaphores_destructor()
     sem_destroy(noJudge);
     sem_destroy(mutex);
     sem_destroy(allSignedIn);
-    sem_destroy(printing);
+    sem_destroy(data);
     sem_destroy(allOut);
 
-    for(int i = 0; i < fh->imm_count; i++)
+    for(int i = 0; i < imm->imm_count; i++)
     {
         sem_destroy(&(imm->confirmed[i]));
     }
@@ -183,13 +185,11 @@ void court_constructor(int imm_count)
 {
     for(int i = 0; i < imm_count; i++)
     {
-        fh->index_in_court[i] = 0;
+        fh->index_in_court[i] = false;
     } 
-    fh->imm_count = imm_count;
     fh->entered = 0;
     fh->checked =0;
     fh->isJudge = false;
-    fh->waiting_in_queue = imm_count;
     fh->waiting_for_registration = 0;
     fh->go_out_before_judge_comes = 0;
 }
@@ -205,7 +205,7 @@ int shared_memory_constructor(int imm_count)
                                         MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     allSignedIn = mmap(NULL, sizeof(sem_t), PROT_WRITE | PROT_READ,
                                             MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-    printing = mmap(NULL, sizeof(sem_t),    PROT_WRITE | PROT_READ,
+    data = mmap(NULL, sizeof(sem_t),    PROT_WRITE | PROT_READ,
                                             MAP_SHARED | MAP_ANONYMOUS, -1, 0);
     allOut = mmap(NULL, sizeof(sem_t),      PROT_WRITE | PROT_READ,
                                             MAP_SHARED | MAP_ANONYMOUS, -1, 0);
@@ -215,7 +215,7 @@ int shared_memory_constructor(int imm_count)
                                                            MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
     if(line_count == MAP_FAILED || noJudge == MAP_FAILED || mutex == MAP_FAILED || allSignedIn == MAP_FAILED || 
-    printing == MAP_FAILED || allOut == MAP_FAILED || imm == MAP_FAILED || fh == MAP_FAILED)
+    data == MAP_FAILED || allOut == MAP_FAILED || imm == MAP_FAILED || fh == MAP_FAILED)
     {
         fprintf(stderr,"ERROR: Alloccation failed!\n");
         shared_memory_destructor(imm_count);
@@ -223,7 +223,11 @@ int shared_memory_constructor(int imm_count)
     }
         
     *line_count = 1;
+
     imm->actual_index = 1;
+    imm->imm_count = imm_count;
+    imm->waiting_in_queue = imm_count;
+
     court_constructor(imm_count);        
 
     return EXIT_SUCCESS;                                
@@ -240,6 +244,6 @@ void shared_memory_destructor(int imm_count)
     munmap(noJudge,sizeof(sem_t));
     munmap(mutex,sizeof(sem_t));
     munmap(allSignedIn,sizeof(sem_t));
-    munmap(printing,sizeof(sem_t));
+    munmap(data,sizeof(sem_t));
     munmap(allOut,sizeof(sem_t));
 }

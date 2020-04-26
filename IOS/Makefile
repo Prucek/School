@@ -1,6 +1,6 @@
 # Makefile
 # Riesenie IOS, proj2, 24.4.2020
-# Autor: Peter Rucek, xrucek00, FIT
+# Autor: Peter Rucek, xrucek00
 
 CFLAGS=-std=gnu99 -Wall -Wextra -Werror -pedantic 
 LDFLAGS=-lpthread -lrt
@@ -15,7 +15,8 @@ proj2: $(DEP)
 .PHONY: clean pack
 
 clean:
-	rm proj2
+	rm -f proj2
+	rm -f proj2.out
 
 pack:
 	zip proj2.zip *.c *.h Makefile 

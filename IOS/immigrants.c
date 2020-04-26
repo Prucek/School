@@ -3,9 +3,9 @@
  * 
  * @author Peter Rucek, xrucek00
  *  
- * @date 24.4.2020
+ * @date 26.4.2020
  * 
- * @version 3.0
+ * @version 3.1
  * 
  * @brief IOS 2. Project 
  * Faneuil Hall Problem Implementation
@@ -17,7 +17,7 @@
 
 int imm_generator(int delay, int certificate_delay)
 {
-    for(int i = 1; i <= fh->imm_count; i++)
+    for(int i = 1; i <= imm->imm_count; i++)
     {    
         pid_t pid = fork();
         if(!delay)
@@ -29,8 +29,8 @@ int imm_generator(int delay, int certificate_delay)
         }
         if(pid == -1)
         {
-            fh->imm_count = fh->entered;
-            fh->waiting_in_queue = 0;
+            imm->imm_count = fh->entered;
+            imm->waiting_in_queue = 0;
             sleep(1);
             fprintf(stderr,"ERROR: Fork failed!\n");
             return EXIT_ERROR ;
@@ -96,7 +96,7 @@ void check(int index)
 {
     lock_data_and_printing();
         fh->checked++;
-        fh->index_in_court[index-1] = 1;
+        fh->index_in_court[index-1] = true;
         fprintf(fd,"%d    : IMM %d    : checks              :%d:%d:%d\n",
             (*line_count)++,index,fh->waiting_for_registration,fh->checked,fh->entered);
     unlock_data_and_printing();
@@ -105,7 +105,7 @@ void check(int index)
 void wants_certificate(int index)
 {
     lock_data_and_printing();
-        fh->waiting_in_queue--;
+        imm->waiting_in_queue--;
         fprintf(fd,"%d    : IMM %d    : wants certificate   :%d:%d:%d\n",
             (*line_count)++,index,fh->waiting_for_registration,fh->checked,fh->entered);
     unlock_data_and_printing();
@@ -133,6 +133,7 @@ void imm_leave(int index)
         sem_getvalue(allOut,&value);
         if(fh->go_out_before_judge_comes == 0 && value == 0)
         {
+            //judge can enter
             sem_post(allOut);
         }
     unlock_data_and_printing();
@@ -141,6 +142,6 @@ void imm_leave(int index)
 
 void delete_immigrants()
 {
-    for(int i = 0; i < fh->imm_count; i++)
+    for(int i = 0; i < imm->imm_count; i++)
         wait(NULL);
 }
