@@ -76,7 +76,7 @@ Header *hdr_get_prev(Header *hdr);
 static
 size_t allign_page(size_t size)
 {
-    size = (size-1)/PAGE_SIZE*PAGE_SIZE+PAGE_SIZE;
+    size = (size - 1) / PAGE_SIZE * PAGE_SIZE + PAGE_SIZE;
     return size;
 }
 
@@ -97,11 +97,12 @@ size_t allign_page(size_t size)
 static
 Arena *arena_alloc(size_t req_size)
 {
+    //TODO assert(req_size > sizeof(Arena) + sizeof(Header));
+
     size_t al_size = allign_page(req_size);
     Arena *a = mmap(NULL, al_size, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
     if (a == MAP_FAILED)
         return NULL;
-    //(Arena *) &a[0];
     a->next = NULL;
     a->size = al_size;
     return a;
@@ -143,6 +144,8 @@ void arena_append(Arena *a)
 static
 void hdr_ctor(Header *hdr, size_t size)
 {
+    assert(size > 0);
+
     hdr->asize = 0;
     hdr->size = size;
     hdr->next = (Header *) &first_arena[1];
@@ -159,6 +162,8 @@ void hdr_ctor(Header *hdr, size_t size)
 static
 bool hdr_should_split(Header *hdr, size_t size)
 {
+    assert(hdr->asize == 0);
+    assert(size > 0);
     // FIXME
     (void)hdr;
     (void)size;
@@ -191,6 +196,7 @@ bool hdr_should_split(Header *hdr, size_t size)
 static
 Header *hdr_split(Header *hdr, size_t req_size)
 {
+    assert(hdr->size >= req_size + 2*sizeof(Header));
     // FIXME
     (void)hdr;
     (void)req_size;
@@ -208,12 +214,15 @@ Header *hdr_split(Header *hdr, size_t req_size)
 static
 bool hdr_can_merge(Header *left, Header *right)
 {
-    //                                          ???????????????????????????????????
-    if(left->asize == 0 && right->asize == 0 && left->next == right && left != right)
+    assert(left->next == right);
+    assert(left != right);
+
+    if (((char *)left) + sizeof(Header) + left->size != (char *) right)
+        return false;
+    if (left->asize == 0 && right->asize == 0)
         return true;
     else
-        return false;
-    
+        return false;    
 }
 
 /**
@@ -226,7 +235,10 @@ bool hdr_can_merge(Header *left, Header *right)
 static
 void hdr_merge(Header *left, Header *right)
 {
-    left->size = left->size + right->size;
+    assert(left->next == right);
+    assert(left != right);
+
+    left->size = left->size + right->size + sizeof(Header);
     left->next = right->next;
 }
 
@@ -239,6 +251,8 @@ void hdr_merge(Header *left, Header *right)
 static
 Header *first_fit(size_t size)
 {
+    assert(size > 0);
+
     Header *tmp = (Header *) &first_arena[1];
     Header *first = tmp;
     while(tmp->size < size || tmp->asize != 0)
@@ -260,6 +274,8 @@ Header *first_fit(size_t size)
 static
 Header *hdr_get_prev(Header *hdr)
 {
+    assert(first_arena != 0);
+
     Header *tmp = hdr;
     while(tmp->next != hdr)
     {
@@ -275,40 +291,42 @@ Header *hdr_get_prev(Header *hdr)
  */
 void *mmalloc(size_t size)
 {
-    static int count = 0;
-    count++;
-    if(first_arena == NULL)
+    if (size == 0)
+        return NULL;
+    size_t al_size = (size-1) / sizeof(Header) * sizeof(Header) + sizeof(Header);
+
+    if (first_arena == NULL)
     {
-        first_arena = arena_alloc(size);
-        if(first_arena == NULL)
+        first_arena = arena_alloc(al_size + sizeof(Header));
+        if (first_arena == NULL)
             return NULL;
         Header *h = (Header*) &first_arena[1];
-        //printf("Header %d %d\n",count,(char *)h);
-        hdr_ctor(h,first_arena->size-sizeof(first_arena)-sizeof(h));
+        hdr_ctor(h,first_arena->size - sizeof(Arena) - sizeof(Header));
     }
 
-    Header *hdr = first_fit(size);
+    Header *hdr = first_fit(al_size);
+    
+    // TODO allocing in the end of the arena
+
     if (hdr == NULL)
     {
-        Arena *a = arena_alloc(size);
-        if(a == NULL)
+        Arena *a = arena_alloc(al_size + sizeof(Header));
+        if (a == NULL)
             return NULL;
         arena_append(a);
         hdr = (Header*) &a[1];
-        hdr_ctor(hdr,a->size-sizeof(a)-sizeof(hdr));
-        //TODO
+        hdr_ctor(hdr,a->size - sizeof(Arena) - sizeof(Header));
         Header *prev = hdr_get_prev(hdr->next);
         prev->next = hdr;
     }
-    Header *new = (Header *) (((char*)hdr)+sizeof(hdr)+size);
-    //printf("Header %d %d\n",++count,(char *)new);
-    hdr_ctor(new,hdr->size-sizeof(hdr)-size);
+
+    Header *new = (Header *) (((char *)hdr) + sizeof(Header) + al_size);
+    hdr_ctor(new,hdr->size - sizeof(Header) - al_size);
     hdr->next = new;
     hdr->asize = size;
-    hdr->size = size;
+    hdr->size = al_size;
 
-    //printf("p %d %d\n",--count,(char *)hdr + sizeof(hdr));
-    return (void *)hdr + sizeof(hdr);
+    return (void *)&hdr[1];
 }
 
 /**
@@ -318,13 +336,16 @@ void *mmalloc(size_t size)
  */
 void mfree(void *ptr)
 {
-    Header *hdr = (Header *) ((char* )ptr-sizeof(hdr));
+    assert(ptr != NULL);
+
+    Header *hdr = &((Header *)ptr)[-1];
     hdr->asize = 0;
+
     if (hdr_can_merge(hdr,hdr->next))
         hdr_merge(hdr,hdr->next);
-    //TODO
-    // else if (hdr_can_merge(hdr_get_prev(hdr),hdr))
-    //     hdr_merge(hdr_get_prev(hdr),hdr);
+
+    if (hdr_can_merge(hdr_get_prev(hdr),hdr))
+        hdr_merge(hdr_get_prev(hdr),hdr);
 }
 
 /**
@@ -337,8 +358,18 @@ void mfree(void *ptr)
  */
 void *mrealloc(void *ptr, size_t size)
 {
-    // FIXME
-    (void)ptr;
-    (void)size;
-    return NULL;
+    if (ptr == NULL || size == 0)
+        return NULL;
+
+    Header *hdr = &((Header *)ptr)[-1];
+    if (size > hdr->size)
+    {
+        mfree(ptr);
+        return mmalloc(size);
+    }
+    else
+    {
+        hdr->asize = size;
+        return (void *)&hdr[1];
+    }
 }
