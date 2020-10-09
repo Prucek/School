@@ -1,7 +1,8 @@
 /**
  * Implementace My MALloc
  * Demonstracni priklad pro 1. ukol IPS/2020
- * Ales Smrcka
+ * Kostra: Ales Smrcka
+ * Implementace : Peter Rucek, xrucek00
  */
 
 #include "mmal.h"
@@ -67,9 +68,6 @@ struct arena {
 
 Arena *first_arena = NULL;
 
-static
-Header *hdr_get_prev(Header *hdr);
-
 /**
  * Return size alligned to PAGE_SIZE
  */
@@ -97,8 +95,6 @@ size_t allign_page(size_t size)
 static
 Arena *arena_alloc(size_t req_size)
 {
-    //TODO assert(req_size > sizeof(Arena) + sizeof(Header));
-
     size_t al_size = allign_page(req_size);
     Arena *a = mmap(NULL, al_size, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
     if (a == MAP_FAILED)
@@ -164,10 +160,11 @@ bool hdr_should_split(Header *hdr, size_t size)
 {
     assert(hdr->asize == 0);
     assert(size > 0);
-    // FIXME
-    (void)hdr;
-    (void)size;
-    return false;
+    //??????????????????????????????????????????????????
+    if (hdr->size >= size + 2*sizeof(Header))
+        return true;
+    else
+        return false;
 }
 
 /**
@@ -197,10 +194,13 @@ static
 Header *hdr_split(Header *hdr, size_t req_size)
 {
     assert(hdr->size >= req_size + 2*sizeof(Header));
-    // FIXME
-    (void)hdr;
-    (void)req_size;
-    return NULL;
+    
+    Header *new = (Header *) (((char *)hdr) + sizeof(Header) + req_size);
+    hdr_ctor(new,hdr->size - sizeof(Header) - req_size);
+    new->next = hdr->next;
+    hdr->next = new;
+    hdr->size = req_size;
+    return new;
 }
 
 /**
@@ -215,8 +215,9 @@ static
 bool hdr_can_merge(Header *left, Header *right)
 {
     assert(left->next == right);
-    assert(left != right);
 
+    if (left == right) 
+        return false;
     if (((char *)left) + sizeof(Header) + left->size != (char *) right)
         return false;
     if (left->asize == 0 && right->asize == 0)
@@ -293,7 +294,7 @@ void *mmalloc(size_t size)
 {
     if (size == 0)
         return NULL;
-    size_t al_size = (size-1) / sizeof(Header) * sizeof(Header) + sizeof(Header);
+    size_t al_size = (size-1) / sizeof(Header) * sizeof(Header) + sizeof(Header); //aligning to sizeof(Header)
 
     if (first_arena == NULL)
     {
@@ -305,10 +306,8 @@ void *mmalloc(size_t size)
     }
 
     Header *hdr = first_fit(al_size);
-    
-    // TODO allocing in the end of the arena
 
-    if (hdr == NULL)
+    if (hdr == NULL) // no place in current arena
     {
         Arena *a = arena_alloc(al_size + sizeof(Header));
         if (a == NULL)
@@ -320,12 +319,22 @@ void *mmalloc(size_t size)
         prev->next = hdr;
     }
 
-    Header *new = (Header *) (((char *)hdr) + sizeof(Header) + al_size);
-    hdr_ctor(new,hdr->size - sizeof(Header) - al_size);
-    hdr->next = new;
-    hdr->asize = size;
-    hdr->size = al_size;
-
+    if (hdr->next == (Header*) &first_arena[1]) // allocating after the last header
+    {
+        Header *new = (Header *) (((char *)hdr) + sizeof(Header) + al_size);
+        hdr_ctor(new,hdr->size - sizeof(Header) - al_size);
+        hdr->next = new;
+        hdr->asize = size;
+        hdr->size = al_size;
+    }
+    else // allocating between 2 headers
+    {
+        if (hdr_should_split(hdr,al_size))
+            hdr_split(hdr,al_size);  
+            
+        hdr->asize = size;
+    }
+    
     return (void *)&hdr[1];
 }
 
@@ -343,7 +352,7 @@ void mfree(void *ptr)
 
     if (hdr_can_merge(hdr,hdr->next))
         hdr_merge(hdr,hdr->next);
-
+        
     if (hdr_can_merge(hdr_get_prev(hdr),hdr))
         hdr_merge(hdr_get_prev(hdr),hdr);
 }
@@ -364,8 +373,10 @@ void *mrealloc(void *ptr, size_t size)
     Header *hdr = &((Header *)ptr)[-1];
     if (size > hdr->size)
     {
+        void * new = mmalloc(size);
+        memcpy(new,ptr,((Header *)ptr)->size);
         mfree(ptr);
-        return mmalloc(size);
+        return new;
     }
     else
     {
