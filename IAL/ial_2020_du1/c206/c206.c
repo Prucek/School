@@ -91,9 +91,9 @@ void DLDisposeList (tDLList *L) {
     tDLElemPtr tmp = L->First;
     while(tmp != NULL)
     {
-        tDLElemPtr next = tmp->rptr;
+        tDLElemPtr next = tmp->rptr; // Iterator
         free(tmp);
-        tmp = next;
+        tmp = next; 
     }
     L->First = NULL;
     L->Last = NULL;
@@ -113,12 +113,12 @@ void DLInsertFirst (tDLList *L, int val) {
         DLError();
         return;
     }
-    if (L->First == NULL)
+    if (L->First == NULL) // Inserting into an empty DLList
     {
         new->rptr = NULL;
         L->Last = new;
     }
-    else
+    else // Inserting somewhere else
     {
         tDLElemPtr previous_first = L->First;
         previous_first->lptr = new;
@@ -144,12 +144,12 @@ void DLInsertLast(tDLList *L, int val) {
         DLError();
         return;
     }
-    if (L->Last == NULL)
+    if (L->Last == NULL) // Inserting into an empty DLList
     {
         new->lptr = NULL;
         L->First = new;
     }
-    else
+    else // Inserting somewhere else
     {
         tDLElemPtr previous_last = L->Last;
         previous_last->rptr = new;
@@ -219,11 +219,11 @@ void DLDeleteFirst (tDLList *L) {
 	if (L->First != NULL)
     {
         tDLElemPtr tmp = L->First->rptr;
-        if (L->First == L->Act)
+        if (L->First == L->Act) // Activity is lost
         {
             L->Act = NULL;
         }
-        if (L->First == L->Last)
+        if (L->First == L->Last) // Single item in DLList
         {
             L->Last = NULL;
         }
@@ -247,11 +247,11 @@ void DLDeleteLast (tDLList *L) {
     if (L->Last != NULL)
     {
         tDLElemPtr tmp = L->Last->lptr;
-        if (L->Last == L->Act)
+        if (L->Last == L->Act) // Activity is lost
         {
             L->Act = NULL;
         }
-        if (L->First == L->Last)
+        if (L->First == L->Last) // Single item in DLList
         {
             L->First = NULL;
         }
@@ -274,14 +274,14 @@ void DLPostDelete (tDLList *L) {
     if (L->Act != NULL && L->Act != L->Last)
     {
         tDLElemPtr to_delete = L->Act->rptr;
-        if (to_delete == L->Last)
+        if (to_delete == L->Last) // Deleting last item
         {
             free(to_delete);
             L->Act->rptr = NULL;
             L->Last = L->Act;
             return;
         }
-
+        // Deleting somewhere else
         L->Act->rptr = to_delete->rptr;
         to_delete->rptr->lptr = L->Act;
         free(to_delete);
@@ -298,13 +298,14 @@ void DLPreDelete (tDLList *L) {
     if (L->Act != NULL && L->Act != L->First)
     {
         tDLElemPtr to_delete = L->Act->lptr;
-        if(to_delete == L->First)
+        if(to_delete == L->First) // Deleting first item
         {
             free(to_delete);
             L->Act->lptr = NULL;
             L->First = L->Act;
             return;
         }
+        // Deleting somewhere else
         L->Act->lptr = to_delete->lptr;
         to_delete->lptr->rptr = L->Act;
         free(to_delete);
@@ -330,11 +331,11 @@ void DLPostInsert (tDLList *L, int val) {
         new->data = val;
         new->lptr = L->Act;
         new->rptr = L->Act->rptr;
-        if (L->Act == L->Last)
+        if (L->Act == L->Last) // Inserting after last item
         {
             L->Last = new;
         }
-        else
+        else // Inserting somewhere else
         {
             L->Act->rptr->lptr = new;
         }
@@ -361,11 +362,11 @@ void DLPreInsert (tDLList *L, int val) {
         new->data = val;
         new->rptr = L->Act;
         new->lptr = L->Act->lptr;
-        if (L->Act == L->First)
+        if (L->Act == L->First) // Inserting before first item
         {
             L->First = new;
         }
-        else
+        else // Inserting somewhere else
         {
             L->Act->lptr->rptr = new;
         }

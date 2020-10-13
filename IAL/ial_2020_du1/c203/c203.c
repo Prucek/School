@@ -103,7 +103,7 @@ int queueEmpty (const tQueue* q) {
 ** Funkci je vhodné implementovat jedním příkazem return.
 */
 
-	return q->b_index == q->f_index;
+	return q->b_index == q->f_index; 
 }
 
 int queueFull (const tQueue* q) {
@@ -113,7 +113,7 @@ int queueFull (const tQueue* q) {
 ** s využitím pomocné funkce nextIndex.
 */
 
-	return nextIndex(q->b_index) == q->f_index;
+	return nextIndex(q->b_index) == q->f_index; // Between front index and back index is only one [] index
 }
 
 void queueFront (const tQueue* q, char* c) {
@@ -149,7 +149,7 @@ void queueRemove (tQueue* q) {
 		queueError(QERR_REMOVE);
 		return;
 	}
-	q->f_index = nextIndex(q->f_index);
+	q->f_index = nextIndex(q->f_index); // Just shift the index
 }
 
 void queueGet (tQueue* q, char* c) {
@@ -186,7 +186,7 @@ void queueUp (tQueue* q, char c) {
 		queueError(QERR_UP);
 		return;
 	}
-	q->arr[q->b_index] = c;
-	q->b_index = nextIndex(q->b_index);
+	q->arr[q->b_index] = c; // Add to beginning
+	q->b_index = nextIndex(q->b_index); // Shift index
 }
 /* Konec příkladu c203.c */

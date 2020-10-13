@@ -79,13 +79,13 @@ void DisposeList (tList *L) {
 ***/
 	if (L->First == NULL)
         return;
-    tElemPtr tmp = L->First->ptr;
+    tElemPtr tmp = L->First->ptr; 
     while(L->First != NULL)
     {
         free(L->First);
         L->First = tmp;
         if (tmp != NULL)
-            tmp = tmp->ptr;
+            tmp = tmp->ptr; // Iterator
     }
 }
 
@@ -143,7 +143,7 @@ void DeleteFirst (tList *L) {
     {
         if (L->First == L->Act)
             L->Act = NULL;
-        tElemPtr tmp = L->First->ptr;
+        tElemPtr tmp = L->First->ptr; //Saving pointer
         free(L->First);
         L->First = tmp;
     }
@@ -158,7 +158,7 @@ void PostDelete (tList *L) {
 	
     if(L->Act != NULL && L->Act->ptr != NULL)
     {
-        tElemPtr tmp = L->Act->ptr->ptr; 
+        tElemPtr tmp = L->Act->ptr->ptr; //Saving pointer
         free(L->Act->ptr);
         L->Act->ptr = tmp;
     }
