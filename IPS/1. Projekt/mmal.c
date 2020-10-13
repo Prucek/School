@@ -95,12 +95,13 @@ size_t allign_page(size_t size)
 static
 Arena *arena_alloc(size_t req_size)
 {
-    size_t al_size = allign_page(req_size);
-    Arena *a = mmap(NULL, al_size, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
+    assert(req_size > sizeof(Arena) + sizeof(Header));
+
+    Arena *a = mmap(NULL, req_size, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
     if (a == MAP_FAILED)
         return NULL;
     a->next = NULL;
-    a->size = al_size;
+    a->size = req_size;
     return a;
 }
 
@@ -160,7 +161,7 @@ bool hdr_should_split(Header *hdr, size_t size)
 {
     assert(hdr->asize == 0);
     assert(size > 0);
-    //??????????????????????????????????????????????????
+
     if (hdr->size >= size + 2*sizeof(Header))
         return true;
     else
@@ -216,7 +217,7 @@ bool hdr_can_merge(Header *left, Header *right)
 {
     assert(left->next == right);
 
-    if (left == right) 
+    if (left == right) // not assert because Headers are in cyclic list, if freeing the only header in arena, hdr == hdr_get_prev(hdr) = hdr->next
         return false;
     if (((char *)left) + sizeof(Header) + left->size != (char *) right)
         return false;
@@ -282,6 +283,9 @@ Header *hdr_get_prev(Header *hdr)
     {
         tmp = tmp->next;
     }
+
+    assert(tmp->next == hdr);
+
     return tmp;
 }
 
@@ -298,7 +302,7 @@ void *mmalloc(size_t size)
 
     if (first_arena == NULL) // firts allocaion, create arena
     {
-        first_arena = arena_alloc(al_size + sizeof(Header));
+        first_arena = arena_alloc(/*al_size + sizeof(Header)*/ allign_page(al_size));
         if (first_arena == NULL)
             return NULL;
         Header *h = (Header*) &first_arena[1];
@@ -309,7 +313,7 @@ void *mmalloc(size_t size)
 
     if (hdr == NULL) // no place in current arena
     {
-        Arena *a = arena_alloc(al_size + sizeof(Header));
+        Arena *a = arena_alloc(/*al_size + sizeof(Header)*/ allign_page(al_size));
         if (a == NULL)
             return NULL;
         arena_append(a);
@@ -324,7 +328,7 @@ void *mmalloc(size_t size)
         
     hdr->asize = size;
     
-    return (void *)&hdr[1];
+    return (void *) &hdr[1];
 }
 
 /**
@@ -365,11 +369,18 @@ void *mrealloc(void *ptr, size_t size)
         void * new = mmalloc(size);
         memcpy(new,ptr,((Header *)ptr)->size);
         mfree(ptr);
+
+        Header *tmp = &((Header *)new)[-1];
+        assert(tmp->asize == size);
+
         return new;
     }
     else
     {
         hdr->asize = size;
-        return (void *)&hdr[1];
+
+        assert( hdr->asize == size);
+
+        return (void *) &hdr[1];
     }
 }
