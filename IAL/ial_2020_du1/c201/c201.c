@@ -231,7 +231,7 @@ int Active (tList *L) {
 ** Tuto funkci je vhodné implementovat jedním příkazem return. 
 **/
 	
-    return L->Act != NULL && L->First != NULL;
+    return L->Act != NULL;
 }
 
 /* Konec c201.c */
