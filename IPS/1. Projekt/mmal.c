@@ -296,7 +296,7 @@ void *mmalloc(size_t size)
         return NULL;
     size_t al_size = (size-1) / sizeof(Header) * sizeof(Header) + sizeof(Header); //aligning to sizeof(Header)
 
-    if (first_arena == NULL)
+    if (first_arena == NULL) // firts allocaion, create arena
     {
         first_arena = arena_alloc(al_size + sizeof(Header));
         if (first_arena == NULL)
@@ -319,21 +319,10 @@ void *mmalloc(size_t size)
         prev->next = hdr;
     }
 
-    if (hdr->next == (Header*) &first_arena[1]) // allocating after the last header
-    {
-        Header *new = (Header *) (((char *)hdr) + sizeof(Header) + al_size);
-        hdr_ctor(new,hdr->size - sizeof(Header) - al_size);
-        hdr->next = new;
-        hdr->asize = size;
-        hdr->size = al_size;
-    }
-    else // allocating between 2 headers
-    {
-        if (hdr_should_split(hdr,al_size))
-            hdr_split(hdr,al_size);  
-            
-        hdr->asize = size;
-    }
+    if (hdr_should_split(hdr,al_size))
+        hdr_split(hdr,al_size);  
+        
+    hdr->asize = size;
     
     return (void *)&hdr[1];
 }
