@@ -194,8 +194,9 @@ void BTInsert (tBTNodePtr *RootPtr, int Content) {
 ** vzniká vždy jako list stromu. Funkci implementujte nerekurzivně.
 **/
 
-	tBTNodePtr tmp = *RootPtr;
-	tBTNodePtr prev = NULL;
+	// find position where to add
+	tBTNodePtr tmp = *RootPtr; // where
+	tBTNodePtr prev = NULL; // father of tmp
 	while (tmp != NULL)
 	{
 		prev = tmp;
@@ -216,7 +217,7 @@ void BTInsert (tBTNodePtr *RootPtr, int Content) {
 		
 	}
 	
-
+	// if new item -> allocation
 	tBTNodePtr new = (tBTNodePtr) malloc(sizeof(struct tBTNode));
 	if (new == NULL)
 	{
@@ -253,7 +254,7 @@ void Leftmost_Preorder (tBTNodePtr ptr, tStackP *Stack)	{
 	while (ptr != NULL)
 	{
 		SPushP(Stack,ptr);
-		BTWorkOut(ptr);
+		BTWorkOut(ptr); // process
 		ptr = ptr->LPtr;
 	}
 }
@@ -273,7 +274,7 @@ void BTPreorder (tBTNodePtr RootPtr)	{
 		while (!SEmptyP(&s))
 		{
 			RootPtr = STopPopP(&s);
-			if (RootPtr->RPtr != NULL)
+			if (RootPtr->RPtr != NULL) // go right
 			{
 				Leftmost_Preorder(RootPtr->RPtr,&s);
 			}
@@ -313,11 +314,11 @@ void BTInorder (tBTNodePtr RootPtr)	{
 		while (!SEmptyP(&s))
 		{
 			RootPtr = STopPopP(&s);
-			if (RootPtr->RPtr != NULL)
+			if (RootPtr->RPtr != NULL) // go right
 			{
 				Leftmost_Inorder(RootPtr->RPtr,&s);
 			}
-			BTWorkOut(RootPtr);
+			BTWorkOut(RootPtr); //process
 		}
 	}
 }
@@ -390,6 +391,7 @@ void BTDisposeTree (tBTNodePtr *RootPtr)	{
 		SPushP(&s,*RootPtr);
 		while(!SEmptyP(&s))
 		{
+			// push sons, delete father
 			tBTNodePtr to_delete = STopPopP(&s);
 			if (to_delete->LPtr != NULL)
 			{
@@ -406,4 +408,3 @@ void BTDisposeTree (tBTNodePtr *RootPtr)	{
 }
 
 /* konec c402.c */
-
