@@ -55,10 +55,8 @@ void BSTInit (tBSTNodePtr *RootPtr) {
 ** Proto je třeba při přiřazení přes RootPtr použít dereferenční operátor *.
 ** Ten bude použit i ve funkcích BSTDelete, BSTInsert a BSTDispose.
 **/
-
 	
 	*RootPtr = NULL;
-
 }
 
 int BSTSearch (tBSTNodePtr RootPtr, char K, int *Content)	{
@@ -76,13 +74,11 @@ int BSTSearch (tBSTNodePtr RootPtr, char K, int *Content)	{
 ** pomocnou funkci.
 **/
 
-	
-
 	if (RootPtr == NULL)
 	{
 		return FALSE;
 	}
-	else if (RootPtr->Key == K)
+	else if (RootPtr->Key == K) // recursion condition
 	{
 		if (Content != NULL)
 		{
@@ -92,11 +88,11 @@ int BSTSearch (tBSTNodePtr RootPtr, char K, int *Content)	{
 	}
 	else if (RootPtr->Key > K)
 	{
-		BSTSearch(RootPtr->LPtr,K,Content);
+		BSTSearch(RootPtr->LPtr,K,Content); // go left
 	}
 	else if (RootPtr->Key < K)
 	{
-		BSTSearch(RootPtr->RPtr,K,Content);
+		BSTSearch(RootPtr->RPtr,K,Content); // go right
 	}
 }
 
@@ -118,8 +114,7 @@ void BSTInsert (tBSTNodePtr* RootPtr, char K, int Content)	{
 ** příklad, na kterém si chceme ukázat eleganci rekurzivního zápisu.
 **/
 
-	
-	if (*RootPtr == NULL)
+	if (*RootPtr == NULL) // recursion condition
 	{
 		*RootPtr = (tBSTNodePtr) malloc(sizeof(struct tBSTNode));
 		if (RootPtr == NULL)
@@ -131,15 +126,15 @@ void BSTInsert (tBSTNodePtr* RootPtr, char K, int Content)	{
 		(*RootPtr)->LPtr = NULL;
 		(*RootPtr)->RPtr = NULL;
 	}
-	else if (K < (*RootPtr)->Key)
+	else if (K < (*RootPtr)->Key) // go left
 	{
 		BSTInsert(&((*RootPtr)->LPtr),K,Content);
 	}
-	else if (K > (*RootPtr)->Key)
+	else if (K > (*RootPtr)->Key) // go right
 	{
 		BSTInsert(&((*RootPtr)->RPtr),K,Content);
 	}
-	else if (K == (*RootPtr)->Key)
+	else if (K == (*RootPtr)->Key) //update value == do nothing
 	{
 		(*RootPtr)->BSTNodeCont = Content;
 	}
@@ -175,8 +170,6 @@ void ReplaceByRightmost (tBSTNodePtr PtrReplaced, tBSTNodePtr *RootPtr) {
 	{
 		ReplaceByRightmost(PtrReplaced,&((*RootPtr)->RPtr));
 	}
-	
-
 }
 
 void BSTDelete (tBSTNodePtr *RootPtr, char K) 		{
@@ -192,7 +185,6 @@ void BSTDelete (tBSTNodePtr *RootPtr, char K) 		{
 ** pomocné funkce ReplaceByRightmost.
 **/
 
-	
 	if ((*RootPtr) != NULL)
 	{
 		if ((*RootPtr)->Key > K) //left subtree
@@ -239,7 +231,6 @@ void BSTDispose (tBSTNodePtr *RootPtr) {
 ** funkce.
 **/
 	
-
 	if ((*RootPtr) != NULL)
 	{
 		BSTDispose(&(*RootPtr)->LPtr);
