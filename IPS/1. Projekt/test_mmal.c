@@ -111,98 +111,98 @@ int main()
 
     /***********************************************************************/
     // Uvolneni prvniho bloku
+    // mfree(p2);
+    // debug_arenas(HERE "po free(p2)");
+    // void *ptr = mmalloc(80);
+    // debug_arenas(HERE "po moj alloc 80");
+    // mrealloc(ptr,96);
+    // debug_arenas(HERE "po moj realloc 96");
+    mfree(p1);
+
+    /**
+     *                p1          p2          p3
+     *   +-----+------+----+------+----+------+-----+------+---+
+     *   |Arena|Header|....|Header|XXXX|Header|XXXXX|Header|...|
+     *   +-----+------+----+------+----+------+-----+------+---+
+     */
+    // insert assert here
+    debug_arenas(HERE "po mfree(p1)");
+
+    // void *mp1 = mmalloc(40);
+    // debug_arenas(HERE "moj malloc1------------------------------------------------");
+    // mfree(mp1);
+    // debug_arenas(HERE "moj free1------------------------------------------------");
+    /***********************************************************************/
+    // Uvolneni posledniho zabraneho bloku
+    mfree(p3);
+    /**
+     *                p1          p2          p3
+     *   +-----+------+----+------+----+------+----------------+
+     *   |Arena|Header|....|Header|XXXX|Header|................|
+     *   +-----+------+----+------+----+------+----------------+
+     */
+    // insert assert here
+    debug_arenas(HERE "po mfree(p3)");
+
+    /***********************************************************************/
+    // Uvolneni prostredniho bloku
     mfree(p2);
-    debug_arenas(HERE "po free(p2)");
-    void *ptr = mmalloc(80);
-    debug_arenas(HERE "po moj alloc 80");
-    mrealloc(ptr,96);
-    debug_arenas(HERE "po moj realloc 96");
-// /*    mfree(p1);
-
-//     /**
-//      *                p1          p2          p3
-//      *   +-----+------+----+------+----+------+-----+------+---+
-//      *   |Arena|Header|....|Header|XXXX|Header|XXXXX|Header|...|
-//      *   +-----+------+----+------+----+------+-----+------+---+
-//      */
-//     // insert assert here
-//     debug_arenas(HERE "po mfree(p1)");
-
-//     // void *mp1 = mmalloc(40);
-//     // debug_arenas(HERE "moj malloc1------------------------------------------------");
-//     // mfree(mp1);
-//     // debug_arenas(HERE "moj free1------------------------------------------------");
-//     /***********************************************************************/
-//     // Uvolneni posledniho zabraneho bloku
-//     mfree(p3);
-//     /**
-//      *                p1          p2          p3
-//      *   +-----+------+----+------+----+------+----------------+
-//      *   |Arena|Header|....|Header|XXXX|Header|................|
-//      *   +-----+------+----+------+----+------+----------------+
-//      */
-//     // insert assert here
-//     debug_arenas(HERE "po mfree(p3)");
-
-//     /***********************************************************************/
-//     // Uvolneni prostredniho bloku
-//     mfree(p2);
-//     /**
-//      *                p1          p2          p3
-//      *   +-----+------+----------------------------------------+
-//      *   |Arena|Header|........................................|
-//      *   +-----+------+----------------------------------------+
-//      */
-//     // insert assert here
-//     debug_arenas(HERE "po mfree(p2)");
+    /**
+     *                p1          p2          p3
+     *   +-----+------+----------------------------------------+
+     *   |Arena|Header|........................................|
+     *   +-----+------+----------------------------------------+
+     */
+    // insert assert here
+    debug_arenas(HERE "po mfree(p2)");
 
 
-//     // void *mp2 = mmalloc(80);
-//     // debug_arenas(HERE "moj malloc2------------------------------------------------");
-//     // mfree(mp2);
-//     // debug_arenas(HERE "moj free2------------------------------------------------");
-//     // Dalsi alokace se nevleze do existujici areny
-//     void *p4 = mmalloc(PAGE_SIZE*2);
-//     /**
-//      *   /-- first_arena
-//      *   v            p1          p2          p3
-//      *   +-----+------+----------------------------------------+
-//      *   |Arena|Header|........................................|
-//      *   +-----+------+----------------------------------------+
-//      *      \ next
-//      *       v            p4
-//      *       +-----+------+---------------------------+------+-----+
-//      *       |Arena|Header|XXXXXXXXXXXXXXXXXXXXXXXXXXX|Header|.....|
-//      *       +-----+------+---------------------------+------+-----+
-//      */
-//     Header *h4 = &((Header*)p4)[-1];
-//     assert(h1->next == h4);
-//     assert(h4->asize == PAGE_SIZE*2);
-//     assert(h4->next->next == h1);
+    // void *mp2 = mmalloc(80);
+    // debug_arenas(HERE "moj malloc2------------------------------------------------");
+    // mfree(mp2);
+    // debug_arenas(HERE "moj free2------------------------------------------------");
+    // Dalsi alokace se nevleze do existujici areny
+    void *p4 = mmalloc(PAGE_SIZE*2);
+    /**
+     *   /-- first_arena
+     *   v            p1          p2          p3
+     *   +-----+------+----------------------------------------+
+     *   |Arena|Header|........................................|
+     *   +-----+------+----------------------------------------+
+     *      \ next
+     *       v            p4
+     *       +-----+------+---------------------------+------+-----+
+     *       |Arena|Header|XXXXXXXXXXXXXXXXXXXXXXXXXXX|Header|.....|
+     *       +-----+------+---------------------------+------+-----+
+     */
+    Header *h4 = &((Header*)p4)[-1];
+    assert(h1->next == h4);
+    assert(h4->asize == PAGE_SIZE*2);
+    assert(h4->next->next == h1);
 
-//     debug_arenas(HERE "po mmalloc(262144) = mmalloc(0x40000)");
+    debug_arenas(HERE "po mmalloc(262144) = mmalloc(0x40000)");
 
-//     /***********************************************************************/
-//     p4 = mrealloc(p4, PAGE_SIZE*2 + 2);
-//     /**
-//      *                    p4
-//      *       +-----+------+-----------------------------+------+---+
-//      *       |Arena|Header|XXXXXXXXXXXXXXXXXXXXXXXXXXXxx|Header|...|
-//      *       +-----+------+-----------------------------+------+---+
-//      */
+    /***********************************************************************/
+    p4 = mrealloc(p4, PAGE_SIZE*2 + 2);
+    /**
+     *                    p4
+     *       +-----+------+-----------------------------+------+---+
+     *       |Arena|Header|XXXXXXXXXXXXXXXXXXXXXXXXXXXxx|Header|...|
+     *       +-----+------+-----------------------------+------+---+
+     */
 
-//     assert(p4 != NULL);
-//     // h4 need not to be in the same location; would be nice, but not required
-//     h4 = &((Header*)p4)[-1];
-//     assert(h4->asize == PAGE_SIZE*2 + 2);
-//     debug_arenas(HERE "po mrealloc(p4, 262146) = mmrealloc(p4, 0x400002)");
+    assert(p4 != NULL);
+    // h4 need not to be in the same location; would be nice, but not required
+    h4 = &((Header*)p4)[-1];
+    assert(h4->asize == PAGE_SIZE*2 + 2);
+    debug_arenas(HERE "po mrealloc(p4, 262146) = mmrealloc(p4, 0x400002)");
 
-//     /***********************************************************************/
-//     mfree(p4);
-//     assert(h4->asize == 0);
-//     assert(h4->next == h1);
+    /***********************************************************************/
+    mfree(p4);
+    assert(h4->asize == 0);
+    assert(h4->next == h1);
 
-//     debug_arenas(HERE "po mfree(p4)");
+    debug_arenas(HERE "po mfree(p4)");
 
     return 0;
 }

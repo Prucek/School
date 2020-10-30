@@ -302,7 +302,7 @@ void *mmalloc(size_t size)
 
     if (first_arena == NULL) // firts allocaion, create arena
     {
-        first_arena = arena_alloc(/*al_size + sizeof(Header)*/ allign_page(al_size));
+        first_arena = arena_alloc(allign_page(al_size));
         if (first_arena == NULL)
             return NULL;
         Header *h = (Header*) &first_arena[1];
@@ -313,7 +313,7 @@ void *mmalloc(size_t size)
 
     if (hdr == NULL) // no place in current arena
     {
-        Arena *a = arena_alloc(/*al_size + sizeof(Header)*/ allign_page(al_size));
+        Arena *a = arena_alloc(allign_page(al_size));
         if (a == NULL)
             return NULL;
         arena_append(a);
