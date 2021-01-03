@@ -1,3 +1,4 @@
+# Frame creating
 from pydub import AudioSegment
 import numpy as np
 import matplotlib.pyplot as plt
@@ -60,7 +61,6 @@ t1 = np.arange(on_frames[len(on_frames)-1].size) / fs
 t2 = np.arange(off_frames[len(off_frames)-1].size) / fs
 
 fig1, ax1 = plt.subplots()
-
 
 ax1.plot(t1,on_frames[40], label = "Mask on")
 ax1.plot(t2,off_frames[40], label = "Mask off")

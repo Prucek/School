@@ -1,3 +1,4 @@
+# Clipping, Autocorrelation, Frequency
 import iss3
 import numpy as np
 import matplotlib.pyplot as plt
@@ -70,6 +71,7 @@ for i in range(len(cor_on)):
     max_off[i] = iss3.fs / np.argmax(freq_off)
 
 
+# Draw
 fig2, ax2 = plt.subplots()
 ax2.plot(iss3.on_frames[40])
 fig2.gca().set_title("Clipping")
@@ -77,7 +79,6 @@ fig2.gca().set_ylabel("y")
 fig2.gca().set_xlabel("data")
 fig2.tight_layout()
 fig2.savefig("figure2.png")
-
 
 
 fig3, ax3 = plt.subplots()
