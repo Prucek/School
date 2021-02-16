@@ -1,0 +1,145 @@
+perf stat ./a.out 1 (CFLAGS=-O3 -g)
+==================================================
+2.22 seconds
+
+ Performance counter stats for './a.out 1':
+
+          2,229.43 msec task-clock                #    0.999 CPUs utilized          
+               349      context-switches          #  156.572 M/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+             1,703      page-faults               #  764.020 M/sec                  
+     8,199,626,915      cycles                    # 3678612.344 GHz                   (83.33%)
+         3,571,952      stalled-cycles-frontend   #    0.04% frontend cycles idle     (83.15%)
+     8,011,630,714      stalled-cycles-backend    #   97.71% backend cycles idle      (83.33%)
+     1,127,217,806      instructions              #    0.14  insn per cycle         
+                                                  #    7.11  stalled cycles per insn  (83.33%)
+       147,810,845      branches                  # 66312626.738 M/sec                (83.45%)
+           329,065      branch-misses             #    0.22% of all branches          (83.42%)
+
+       2.232174560 seconds time elapsed
+
+       2.221396000 seconds user
+       0.008005000 seconds sys
+
+
+perf stat ./a.out 3 (CFLAGS=-O3 -g)
+==================================================
+0.83 seconds
+
+ Performance counter stats for './a.out 3':
+
+            836.00 msec task-clock                #    0.999 CPUs utilized          
+                84      context-switches          #  100.599 M/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+             1,700      page-faults               # 2035.928 M/sec                  
+     3,066,179,921      cycles                    # 3672071.762 GHz                   (83.26%)
+           688,557      stalled-cycles-frontend   #    0.02% frontend cycles idle     (83.26%)
+     2,888,503,041      stalled-cycles-backend    #   94.21% backend cycles idle      (83.26%)
+       989,198,105      instructions              #    0.32  insn per cycle         
+                                                  #    2.92  stalled cycles per insn  (83.26%)
+       147,240,708      branches                  # 176336177.246 M/sec               (83.26%)
+           331,876      branch-misses             #    0.23% of all branches          (83.69%)
+
+       0.836835800 seconds time elapsed
+
+       0.824375000 seconds user
+       0.011947000 seconds sys
+
+
+perf stat ./a.out 4 (CFLAGS=-O3 -g)
+==================================================
+0.02 seconds
+
+ Performance counter stats for './a.out 4':
+
+             28.84 msec task-clock                #    0.988 CPUs utilized          
+                 4      context-switches          #  142.857 M/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+             2,280      page-faults               # 81428.571 M/sec                 
+        88,371,314      cycles                    # 3156118.357 GHz                   (72.30%)
+           839,623      stalled-cycles-frontend   #    0.95% frontend cycles idle     (83.91%)
+        51,172,799      stalled-cycles-backend    #   57.91% backend cycles idle      (86.21%)
+       255,734,084      instructions              #    2.89  insn per cycle         
+                                                  #    0.20  stalled cycles per insn  (86.14%)
+        13,863,849      branches                  # 495137464.286 M/sec               (86.14%)
+            94,735      branch-misses             #    0.68% of all branches          (85.31%)
+
+       0.029184114 seconds time elapsed
+
+       0.021873000 seconds user
+       0.007291000 seconds sys
+
+
+perf stat ./a.out 5 (CFLAGS=-O3 -g)
+==================================================
+0.06 seconds
+
+ Performance counter stats for './a.out 5':
+
+             75.40 msec task-clock                #    0.994 CPUs utilized          
+                 7      context-switches          #   93.333 M/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+             1,700      page-faults               # 22666.667 M/sec                 
+       261,549,628      cycles                    # 3487328.373 GHz                   (80.44%)
+         7,432,611      stalled-cycles-frontend   #    2.84% frontend cycles idle     (84.09%)
+         5,127,172      stalled-cycles-backend    #    1.96% backend cycles idle      (84.12%)
+       669,808,818      instructions              #    2.56  insn per cycle         
+                                                  #    0.01  stalled cycles per insn  (84.09%)
+        83,643,526      branches                  # 1115247013.333 M/sec              (84.09%)
+         3,722,819      branch-misses             #    4.45% of all branches          (83.16%)
+
+       0.075821271 seconds time elapsed
+
+       0.075841000 seconds user
+       0.000000000 seconds sys
+
+
+**************************************************
+perf stat ./a.out 2 (CFLAGS=-O3 -g)
+==================================================
+0.04 seconds
+
+ Performance counter stats for './a.out 2':
+
+             52.65 msec task-clock                #    0.992 CPUs utilized          
+                 5      context-switches          #   96.154 M/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+             1,703      page-faults               # 32750.000 M/sec                 
+       176,741,281      cycles                    # 3398870.788 GHz                   (81.95%)
+         1,056,737      stalled-cycles-frontend   #    0.60% frontend cycles idle     (84.80%)
+         5,173,120      stalled-cycles-backend    #    2.93% backend cycles idle      (84.85%)
+       563,218,152      instructions              #    3.19  insn per cycle         
+                                                  #    0.01  stalled cycles per insn  (84.81%)
+        77,289,667      branches                  # 1486339750.000 M/sec              (84.82%)
+           313,466      branch-misses             #    0.41% of all branches          (78.77%)
+
+       0.053057156 seconds time elapsed
+
+       0.053086000 seconds user
+       0.000000000 seconds sys
+
+
+perf stat ./a.out 2 (CFLAGS=-O3 -g -funroll-loops)
+==================================================
+0.03 seconds
+
+ Performance counter stats for './a.out 2':
+
+             40.46 msec task-clock                #    0.988 CPUs utilized          
+                12      context-switches          #  300.000 M/sec                  
+                 0      cpu-migrations            #    0.000 K/sec                  
+             1,701      page-faults               # 42525.000 M/sec                 
+       133,048,181      cycles                    # 3326204.525 GHz                   (80.23%)
+           729,148      stalled-cycles-frontend   #    0.55% frontend cycles idle     (80.22%)
+        58,276,562      stalled-cycles-backend    #   43.80% backend cycles idle      (80.49%)
+       394,408,147      instructions              #    2.96  insn per cycle         
+                                                  #    0.15  stalled cycles per insn  (87.79%)
+        20,333,471      branches                  # 508336775.000 M/sec               (90.11%)
+           445,551      branch-misses             #    2.19% of all branches          (81.16%)
+
+       0.040935393 seconds time elapsed
+
+       0.036761000 seconds user
+       0.004084000 seconds sys
+
+

@@ -4,6 +4,11 @@
 !*/
 !Makefile
 
+# Compressed files
+*.tar.gz
+*.tar
+*.gz
+
 # Prerequisites
 *.d
 

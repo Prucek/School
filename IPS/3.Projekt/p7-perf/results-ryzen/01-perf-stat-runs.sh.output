@@ -1,0 +1,145 @@
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 1 (CFLAGS=-O3 -g)
+==================================================
+2.25 seconds
+
+ Performance counter stats for './a.out 1':
+
+          2,257.09 msec task-clock                #    0.999 CPUs utilized          
+               194      context-switches          #    0.086 K/sec                  
+             1,702      page-faults               #    0.754 K/sec                  
+     8,319,479,856      cycles                    #    3.686 GHz                      (71.32%)
+     1,133,930,847      instructions              #    0.14  insn per cycle                                              (71.32%)
+       149,713,803      branches                  #   66.331 M/sec                    (71.32%)
+           353,535      branch-misses             #    0.24% of all branches          (71.50%)
+       583,095,635      L1-dcache-loads           #  258.340 M/sec                    (71.68%)
+     2,973,985,575      L1-dcache-load-misses     #  510.03% of all L1-dcache hits    (71.52%)
+             4,339      dTLB-load-misses                                              (71.33%)
+
+       2.259485275 seconds time elapsed
+
+       2.253165000 seconds user
+       0.004002000 seconds sys
+
+
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 3 (CFLAGS=-O3 -g)
+==================================================
+0.82 seconds
+
+ Performance counter stats for './a.out 3':
+
+            831.52 msec task-clock                #    1.000 CPUs utilized          
+                 3      context-switches          #    0.004 K/sec                  
+             1,703      page-faults               #    0.002 M/sec                  
+     3,064,109,227      cycles                    #    3.685 GHz                      (71.14%)
+       978,005,895      instructions              #    0.32  insn per cycle                                              (71.14%)
+       149,243,620      branches                  #  179.482 M/sec                    (71.14%)
+           339,554      branch-misses             #    0.23% of all branches          (71.31%)
+       300,435,453      L1-dcache-loads           #  361.308 M/sec                    (71.79%)
+       137,777,640      L1-dcache-load-misses     #   45.86% of all L1-dcache hits    (71.98%)
+            83,395      dTLB-load-misses                                              (71.50%)
+
+       0.831878581 seconds time elapsed
+
+       0.832116000 seconds user
+       0.000000000 seconds sys
+
+
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 4 (CFLAGS=-O3 -g)
+==================================================
+0.02 seconds
+
+ Performance counter stats for './a.out 4':
+
+             25.49 msec task-clock                #    0.991 CPUs utilized          
+                 0      context-switches          #    0.000 K/sec                  
+             2,283      page-faults               #    0.090 M/sec                  
+        87,301,037      cycles                    #    3.425 GHz                      (68.63%)
+       248,442,144      instructions              #    2.85  insn per cycle                                              (68.62%)
+        16,933,543      branches                  #  664.332 M/sec                    (68.62%)
+           110,548      branch-misses             #    0.65% of all branches          (68.61%)
+        87,422,760      L1-dcache-loads           # 3429.745 M/sec                    (77.35%)
+         5,336,049      L1-dcache-load-misses     #    6.10% of all L1-dcache hits    (78.44%)
+             7,866      dTLB-load-misses                                              (69.73%)
+
+       0.025714993 seconds time elapsed
+
+       0.012886000 seconds user
+       0.012886000 seconds sys
+
+
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 5 (CFLAGS=-O3 -g)
+==================================================
+0.06 seconds
+
+ Performance counter stats for './a.out 5':
+
+             69.60 msec task-clock                #    0.996 CPUs utilized          
+                 0      context-switches          #    0.000 K/sec                  
+             1,701      page-faults               #    0.024 M/sec                  
+       253,134,038      cycles                    #    3.637 GHz                      (65.52%)
+       672,449,044      instructions              #    2.66  insn per cycle                                              (68.88%)
+        85,519,974      branches                  # 1228.818 M/sec                    (74.63%)
+         3,664,409      branch-misses             #    4.28% of all branches          (77.01%)
+       228,678,210      L1-dcache-loads           # 3285.828 M/sec                    (77.01%)
+        34,290,569      L1-dcache-load-misses     #   15.00% of all L1-dcache hits    (71.35%)
+             2,145      dTLB-load-misses                                              (65.60%)
+
+       0.069851725 seconds time elapsed
+
+       0.065986000 seconds user
+       0.003881000 seconds sys
+
+
+**************************************************
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 2 (CFLAGS=-O3 -g)
+==================================================
+0.04 seconds
+
+ Performance counter stats for './a.out 2':
+
+             48.69 msec task-clock                #    0.995 CPUs utilized          
+                 2      context-switches          #    0.041 K/sec                  
+             1,701      page-faults               #    0.035 M/sec                  
+       177,430,661      cycles                    #    3.644 GHz                      (67.23%)
+       557,911,712      instructions              #    3.14  insn per cycle                                              (67.15%)
+        78,389,126      branches                  # 1609.836 M/sec                    (67.14%)
+           322,659      branch-misses             #    0.41% of all branches          (72.99%)
+       221,127,972      L1-dcache-loads           # 4541.188 M/sec                    (81.21%)
+        18,294,898      L1-dcache-load-misses     #    8.27% of all L1-dcache hits    (76.20%)
+             1,257      dTLB-load-misses                                              (68.07%)
+
+       0.048954569 seconds time elapsed
+
+       0.045198000 seconds user
+       0.003766000 seconds sys
+
+
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 2 (CFLAGS=-O3 -g -funroll-loops)
+==================================================
+0.03 seconds
+
+ Performance counter stats for './a.out 2':
+
+             37.47 msec task-clock                #    0.992 CPUs utilized          
+                 0      context-switches          #    0.000 K/sec                  
+             1,705      page-faults               #    0.046 M/sec                  
+       133,601,716      cycles                    #    3.566 GHz                      (62.53%)
+       391,049,140      instructions              #    2.93  insn per cycle                                              (73.20%)
+        21,686,387      branches                  #  578.769 M/sec                    (78.65%)
+           474,110      branch-misses             #    2.19% of all branches          (78.65%)
+       212,525,121      L1-dcache-loads           # 5671.900 M/sec                    (78.65%)
+        18,236,100      L1-dcache-load-misses     #    8.58% of all L1-dcache hits    (69.50%)
+             1,953      dTLB-load-misses                                              (58.82%)
+
+       0.037786092 seconds time elapsed
+
+       0.037844000 seconds user
+       0.000000000 seconds sys
+
+

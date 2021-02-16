@@ -1,0 +1,145 @@
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 1 (CFLAGS=-O3 -g)
+==================================================
+0.29 seconds
+
+ Performance counter stats for './a.out 1':
+
+            293.85 msec task-clock                #    0.999 CPUs utilized          
+                 3      context-switches          #    0.010 K/sec                  
+             1,702      page-faults               #    0.006 M/sec                  
+     1,118,197,599      cycles                    #    3.805 GHz                    
+     1,116,497,974      instructions              #    1.00  insn per cycle         
+       145,365,992      branches                  #  494.692 M/sec                  
+           301,294      branch-misses             #    0.21% of all branches        
+       281,833,855      L1-dcache-loads           #  959.103 M/sec                  
+       145,531,388      L1-dcache-load-misses     #   51.64% of all L1-dcache hits  
+             7,216      dTLB-load-misses                                            
+
+       0.294198629 seconds time elapsed
+
+       0.294227000 seconds user
+       0.000000000 seconds sys
+
+
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 3 (CFLAGS=-O3 -g)
+==================================================
+0.19 seconds
+
+ Performance counter stats for './a.out 3':
+
+            193.96 msec task-clock                #    0.998 CPUs utilized          
+                 6      context-switches          #    0.031 K/sec                  
+             1,703      page-faults               #    0.009 M/sec                  
+       738,629,501      cycles                    #    3.808 GHz                    
+       986,067,879      instructions              #    1.33  insn per cycle         
+       146,148,797      branches                  #  753.515 M/sec                  
+           324,103      branch-misses             #    0.22% of all branches        
+       282,575,087      L1-dcache-loads           # 1456.902 M/sec                  
+       135,237,893      L1-dcache-load-misses     #   47.86% of all L1-dcache hits  
+             7,493      dTLB-load-misses                                            
+
+       0.194267814 seconds time elapsed
+
+       0.194224000 seconds user
+       0.000000000 seconds sys
+
+
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 4 (CFLAGS=-O3 -g)
+==================================================
+0.02 seconds
+
+ Performance counter stats for './a.out 4':
+
+             26.11 msec task-clock                #    0.991 CPUs utilized          
+                 2      context-switches          #    0.077 K/sec                  
+             2,280      page-faults               #    0.087 M/sec                  
+        98,482,661      cycles                    #    3.772 GHz                    
+       275,109,483      instructions              #    2.79  insn per cycle         
+        12,184,493      branches                  #  466.731 M/sec                  
+            47,313      branch-misses             #    0.39% of all branches        
+        83,760,311      L1-dcache-loads           # 3208.465 M/sec                  
+         2,458,209      L1-dcache-load-misses     #    2.93% of all L1-dcache hits  
+             8,163      dTLB-load-misses                                            
+
+       0.026347052 seconds time elapsed
+
+       0.021981000 seconds user
+       0.004396000 seconds sys
+
+
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 5 (CFLAGS=-O3 -g)
+==================================================
+0.05 seconds
+
+ Performance counter stats for './a.out 5':
+
+             59.55 msec task-clock                #    0.995 CPUs utilized          
+                 2      context-switches          #    0.034 K/sec                  
+             1,704      page-faults               #    0.029 M/sec                  
+       225,954,718      cycles                    #    3.795 GHz                    
+       686,849,875      instructions              #    3.04  insn per cycle         
+        84,743,934      branches                  # 1423.168 M/sec                  
+            84,356      branch-misses             #    0.10% of all branches        
+       150,009,865      L1-dcache-loads           # 2519.227 M/sec                  
+        21,014,160      L1-dcache-load-misses     #   14.01% of all L1-dcache hits  
+            32,814      dTLB-load-misses                                            
+
+       0.059847718 seconds time elapsed
+
+       0.059860000 seconds user
+       0.000000000 seconds sys
+
+
+**************************************************
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 2 (CFLAGS=-O3 -g)
+==================================================
+0.04 seconds
+
+ Performance counter stats for './a.out 2':
+
+             48.61 msec task-clock                #    0.994 CPUs utilized          
+                 3      context-switches          #    0.062 K/sec                  
+             1,702      page-faults               #    0.035 M/sec                  
+       183,920,545      cycles                    #    3.784 GHz                    
+       583,038,867      instructions              #    3.17  insn per cycle         
+        78,737,361      branches                  # 1619.929 M/sec                  
+           301,321      branch-misses             #    0.38% of all branches        
+       147,533,031      L1-dcache-loads           # 3035.319 M/sec                  
+        17,003,753      L1-dcache-load-misses     #   11.53% of all L1-dcache hits  
+             7,329      dTLB-load-misses                                            
+
+       0.048906838 seconds time elapsed
+
+       0.048870000 seconds user
+       0.000000000 seconds sys
+
+
+perf stat -e task-clock,context-switches,page-faults,cycles,instructions,branches,branch-misses,L1-dcache-loads,L1-dcache-load-misses,dTLB-load-misses \
+     ./a.out 2 (CFLAGS=-O3 -g -funroll-loops)
+==================================================
+0.03 seconds
+
+ Performance counter stats for './a.out 2':
+
+             40.07 msec task-clock                #    0.992 CPUs utilized          
+                 2      context-switches          #    0.050 K/sec                  
+             1,701      page-faults               #    0.042 M/sec                  
+       151,858,916      cycles                    #    3.790 GHz                    
+       405,471,900      instructions              #    2.67  insn per cycle         
+        19,553,299      branches                  #  488.032 M/sec                  
+            41,047      branch-misses             #    0.21% of all branches        
+       147,525,036      L1-dcache-loads           # 3682.083 M/sec                  
+        16,994,092      L1-dcache-load-misses     #   11.52% of all L1-dcache hits  
+             7,268      dTLB-load-misses                                            
+
+       0.040369660 seconds time elapsed
+
+       0.040377000 seconds user
+       0.000000000 seconds sys
+
+

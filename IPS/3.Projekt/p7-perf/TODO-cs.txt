@@ -1,0 +1,38 @@
+
+==================================================================
+Potrebne nastaveni (jako root):
+# echo -1 >/proc/sys/kernel/perf_event_paranoid
+nebo
+# sysctl kernel.perf_event_paranoid=-1
+==================================================================
+
+* Sledovani jiz beziciho procesu po dobu 1s:
+
+perf stat -e cycles -p $processPID sleep 1
+
+* Kolik citacu celkem mame k dispozici?
+
+perf stat -e cycles,cycles,cycles,cycles,cycles,cycles,cycles,cycles ./a.out 5
+(pokud funguje, mame min 8)
+
+* Udalosti (Jejich seznam viz "perf list"):
+perf stat -e cycles:u ./a.out 5         ### :u == user level only
+perf stat -e instructions:u ./a.out 5
+perf stat -e cycles,instructions,cache-misses ./a.out 5
+
+
+* Vystup pro spreadsheet (-x<delimiter>):
+perf stat -x\;
+
+================
+
+* Dalsi moznosti viz dokumentace ...
+perf record -e instructions:u -F 250 ./noploop 4
+                              -c 1000
+
+* Vse na vsech jadrech (root-only?):
+perf record -a -F 1000 sleep 5
+
+* Top
+perf top
+

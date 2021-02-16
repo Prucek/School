@@ -1,0 +1,7 @@
+
+too slow (40 minutes on i5) -> improve methodology
+
+modularize: main test + modules
+
+rename
+
