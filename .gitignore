@@ -4,6 +4,9 @@
 !*/
 !Makefile
 
+# SDL library
+SDL-1.2.15/
+
 # Compressed files
 *.tar.gz
 *.tar
