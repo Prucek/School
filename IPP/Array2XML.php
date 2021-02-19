@@ -77,7 +77,7 @@ class Array2XML
     public static function init($version = '1.0', $encoding = 'utf-8', $standalone = false, $format_output = true)
     {
         self::$xml = new DomDocument($version, $encoding);
-        self::$xml->xmlStandalone = $standalone;
+        //self::$xml->xmlStandalone = $standalone;
         self::$xml->formatOutput = $format_output;
         self::$encoding = $encoding;
     }

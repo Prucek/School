@@ -2,14 +2,17 @@
     # Ukazka instrukce volani a navratu (bez reseni parametru ci navratovych hodnot)
 .IPPcode21
 
+
+LABEL $foo
 WRITE string@a
-CALL f1
+CALL $$f1
 WRITE string@b
 CALL f2
 WRITE string@c
 CALL konec
-
-    LABEL f1
+PUSHFRAME
+JUMP f1
+    laBEL f1
 WRITE string@f1
 RETURN
 
@@ -18,9 +21,9 @@ WRITE string@f2
 CALL f2_2
 RETURN
 
-LABEL f2_2
+LABel f2_2
 WRITE string@f2_2
-RETURN
+RETURN 
 
-LABEL konec
-WRITE string@d
+LABEL konec    
+WRITE string@

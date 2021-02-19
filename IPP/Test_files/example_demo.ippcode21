@@ -15,7 +15,7 @@ MOVE LF@param2  LF@%2
 # code of function foo
 WRITE LF@param2
 WRITE LF@param1
-MOVE LF@%retval float@0x0p+0
+MOVE LF@%retval int@0
 POPFRAME
 # callee restores
 RETURN 

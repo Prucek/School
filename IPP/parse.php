@@ -9,6 +9,61 @@ define("HEADER_ERR", 21);
 define("OPCODE_ERR", 22);
 define("OTHER_ERR", 23);
 
+const   INTCONS = '(^int@(\+|\-|)\d+$)',
+        BOLCONS = '(^bool@(true|false)$)',
+        STRCONS = '(^string@(([^\s#\\\\]|\\\\\d{3})*)$)',
+        NILCONS = '(^nil@nil$)',
+        TVAR = '(^(GF|TF|LF)@([a-z]|[A-Z]|_|\-|\$|\&|\%|\*|\!|\?)([a-z]|[A-Z]|[0-9]|_|\-|\$|\&|\%|\*|\!|\?)*$)',
+        CONS = '('.INTCONS.'|'.BOLCONS.'|'.STRCONS.'|'.NILCONS.')',
+
+        TYPE = '/^(int|bool|string)$/',
+        LABEL = '/^([a-z]|[A-Z]|_|\-|\$|\&|\%|\*|\!|\?)([a-z]|[A-Z]|[0-9]|_|\-|\$|\&|\%|\*|\!|\?)*$/',
+        SYMBOL = '/('.CONS.'|'.TVAR.')/',
+        VARIABLE = '/'.TVAR.'/',
+        CONSTANT = '/'.CONS.'/';
+
+const INSTRUCTIONS =
+[
+    'CREATEFRAME' => [],
+    'PUSHFRAME'   => [],
+    'POPFRAME'    => [],
+    'RETURN'      => [],
+    'BREAK'       => [],
+
+    'EXIT' => [SYMBOL],
+    'DPRINT' => [SYMBOL],
+    'WRITE' => [SYMBOL],
+    'PUSH' => [SYMBOL],
+    'JUMP' => [LABEL],
+    'LABEL' => [LABEL],
+    'CALL' => [LABEL],
+    'POPS' => [VARIABLE],
+    'DEFVAR' => [VARIABLE],
+
+    'MOVE'     => [VARIABLE,SYMBOL],
+    'INT2CHAR' => [VARIABLE,SYMBOL],
+    'READ'     => [VARIABLE,TYPE],
+    'STRLEN'   => [VARIABLE,SYMBOL],
+    'TYPE'     => [VARIABLE,SYMBOL],
+    'NOT' => [VARIABLE,SYMBOL],
+    'ADD' => [VARIABLE,SYMBOL,SYMBOL],
+    'SUB' => [VARIABLE,SYMBOL,SYMBOL],
+    'MUL' => [VARIABLE,SYMBOL,SYMBOL],
+    'IDIV'=> [VARIABLE,SYMBOL,SYMBOL],
+    'LT'  => [VARIABLE,SYMBOL,SYMBOL],
+    'GT'  => [VARIABLE,SYMBOL,SYMBOL],
+    'EQ'  => [VARIABLE,SYMBOL,SYMBOL],
+    'AND' => [VARIABLE,SYMBOL,SYMBOL],
+    'OR'  => [VARIABLE,SYMBOL,SYMBOL],
+
+    'STRI2INT' => [VARIABLE,SYMBOL,SYMBOL],
+    'CONCAT'   => [VARIABLE,SYMBOL,SYMBOL],
+    'GETCHAR'  => [VARIABLE,SYMBOL,SYMBOL],
+    'SETCHAR'  => [VARIABLE,SYMBOL,SYMBOL],
+    'JUMPIFEQ' => [VARIABLE,SYMBOL,SYMBOL],
+    'JUMPIFNEQ'=> [VARIABLE,SYMBOL,SYMBOL],
+];
+
 ini_set('display_errors', 'stderr');
 
 argument_parsing($argc,$argv);
@@ -16,31 +71,34 @@ argument_parsing($argc,$argv);
 $lines = formating_input();
 
 analyze_header($lines[0]);
-
-for ($i = 0; $i < count($lines); $i++)
-    echo $lines[$i]."\n";
+// for ($i = 0; $i < count($lines); $i++)
+//     echo $lines[$i]."\n";
 
 //create associative array
 for ($i = 1; $i < count($lines); $i++)
 {
-    $arr = preg_split('/\s+/', $lines[$i]);
-    check_instruction($arr[0]);
+    echo "OK\n";
+    $arr = preg_split('/\s+/', trim($lines[$i]));
+    check_instruction($arr);
 
-    $formated[$i]['@attributes'] =  [ 'order'  => $i,'opcode' => $arr[0]];
+    $formated[$i]['@attributes'] =  [ 'order'  => $i,'opcode' => strtoupper($arr[0])];
     for ($j = 1; $j < count($arr); $j++)
     {
-        //TODO check lex and syntax
-        $formated[$i]['arg'.$j] = ['@value' => $arr[$j]]; 
-        // TODO add type
+        $split = explode('@',$arr[$j]);
+        if ($split[0] === 'string' || $split[0] === 'int' || $split[0] === 'bool' || $split[0] === 'nil')
+            $formated[$i]['arg'.$j] = ['@value' => $split[1], '@attributes' =>['type' => $split[0]]]; 
+        else
+            $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'var']]; 
     }
 }
 
-$to_xml = ['instruction' => $formated];
+$to_xml = ['@attributes' => ['language' => 'IPPcode21'],'instruction' => $formated];
 
 
 
-// $data =
+// $data = 
 // [
+//     '@attributes' => ['language' => 'IPPcode21'],
 //     'instruction' =>
 //     [
 //         [
@@ -79,20 +137,41 @@ echo "\n";
 $xml = Array2XML::createXML('program', $to_xml);
 echo $xml->saveXML();
 
-
+//echo preg_match(SYMBOL,"string@akuijshfujiagf\\03")."\n";
 exit(OK_ERR);
 
 // ===================================================================================
 
+
+
+
+/**
+ * $inst is array where 0 is opcode and others are arguments
+ */
 function check_instruction($inst)
 {
-    //TODO
+    $opcode = strtoupper($inst[0]);
+    if(!array_key_exists($opcode,INSTRUCTIONS))
+        exit(OPCODE_ERR);
+
+    $arg_arr = INSTRUCTIONS[$opcode];
+    for($i = 0; $i < count($arg_arr);$i++)
+    {
+        if(array_key_exists($i+1,$inst))
+        {
+            if (preg_match($arg_arr[$i],$inst[$i+1]) == 0)
+                exit(OTHER_ERR);
+        }
+        else
+            exit(OTHER_ERR);
+    }
+    echo "OK\n";
 }
 
 function analyze_header($line)
 {
     $arr = explode(' ',trim($line));
-    if ($arr[0] !== '.IPPcode21' || count($arr) > 1)
+    if (strtoupper($arr[0]) !== '.IPPCODE21' || count($arr) > 1)
         exit(HEADER_ERR);
 }
 
@@ -109,6 +188,7 @@ function formating_input()
         {
             $line = substr($line, 0, strpos($line, "#")); // remove from # to end of line
             $lines[$i] = trim(preg_replace('/\t+/', '', $line)); // remove tabs
+            $lines[$i] = preg_replace('/\s+/', ' ',$lines[$i]);
         }
         if ($lines[$i] === '')
         {
