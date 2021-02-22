@@ -12,7 +12,7 @@ GT GF@res GF@a int@0
 JUMPIFNEQ $main$if$1$else GF@res bool@true
 #   a = a + 0.5
 #   vypis a (zde dojde k chybe, jelikoz a neni float)
-ADD GF@a GF@a float@0x1p-1
+#ADD GF@a GF@a float@0x1p-1
 WRITE GF@a
 JUMP $main$if$1$end 
 # jinak

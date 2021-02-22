@@ -8,10 +8,10 @@ WRITE string@a
 CALL $$f1
 WRITE string@b
 CALL f2
-WRITE string@c
+WRITE string@c&
 CALL konec
 PUSHFRAME
-JUMP f1
+
     laBEL f1
 WRITE string@f1
 RETURN

@@ -33,7 +33,7 @@ const INSTRUCTIONS =
     'EXIT' => [SYMBOL],
     'DPRINT' => [SYMBOL],
     'WRITE' => [SYMBOL],
-    'PUSH' => [SYMBOL],
+    'PUSHS' => [SYMBOL],
     'JUMP' => [LABEL],
     'LABEL' => [LABEL],
     'CALL' => [LABEL],
@@ -60,8 +60,8 @@ const INSTRUCTIONS =
     'CONCAT'   => [VARIABLE,SYMBOL,SYMBOL],
     'GETCHAR'  => [VARIABLE,SYMBOL,SYMBOL],
     'SETCHAR'  => [VARIABLE,SYMBOL,SYMBOL],
-    'JUMPIFEQ' => [VARIABLE,SYMBOL,SYMBOL],
-    'JUMPIFNEQ'=> [VARIABLE,SYMBOL,SYMBOL],
+    'JUMPIFEQ' => [LABEL,SYMBOL,SYMBOL],
+    'JUMPIFNEQ'=> [LABEL,SYMBOL,SYMBOL],
 ];
 
 ini_set('display_errors', 'stderr');
@@ -69,75 +69,51 @@ ini_set('display_errors', 'stderr');
 argument_parsing($argc,$argv);
 
 $lines = formating_input();
-
+if(!array_key_exists(0,$lines))
+        exit(HEADER_ERR);
 analyze_header($lines[0]);
-// for ($i = 0; $i < count($lines); $i++)
-//     echo $lines[$i]."\n";
+
+$is_empty = true;
 
 //create associative array
 for ($i = 1; $i < count($lines); $i++)
 {
-    echo "OK\n";
+    if(trim($lines[$i]) === false)
+    {
+        continue;
+    }
+    $is_empty = false;
+
     $arr = preg_split('/\s+/', trim($lines[$i]));
     check_instruction($arr);
 
     $formated[$i]['@attributes'] =  [ 'order'  => $i,'opcode' => strtoupper($arr[0])];
     for ($j = 1; $j < count($arr); $j++)
     {
+        if (!strpos($arr[$j],"@") && strtoupper($arr[0]) === 'READ') // type
+        {
+            $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'type']];
+            continue;
+        }
         $split = explode('@',$arr[$j]);
         if ($split[0] === 'string' || $split[0] === 'int' || $split[0] === 'bool' || $split[0] === 'nil')
-            $formated[$i]['arg'.$j] = ['@value' => $split[1], '@attributes' =>['type' => $split[0]]]; 
+            $formated[$i]['arg'.$j] = ['@value' => $split[1], '@attributes' =>['type' => $split[0]]];
+        else if (strtoupper($arr[0]) === 'LABEL' || strtoupper($arr[0]) === 'JUMP' || strtoupper($arr[0]) === 'CALL'
+        || strtoupper($arr[0]) === 'JUMPIFEQ' || strtoupper($arr[0]) === 'JUMPIFNEQ')
+            $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'label']];
         else
-            $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'var']]; 
+            $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'var']];
     }
 }
 
-$to_xml = ['@attributes' => ['language' => 'IPPcode21'],'instruction' => $formated];
+if($is_empty)
+    $to_xml = ['@attributes' => ['language' => 'IPPcode21']];
+else
+    $to_xml = ['@attributes' => ['language' => 'IPPcode21'],'instruction' => $formated];
 
-
-
-// $data = 
-// [
-//     '@attributes' => ['language' => 'IPPcode21'],
-//     'instruction' =>
-//     [
-//         [
-//             '@attributes' =>[
-//                 'opcode' => 'LABEL',
-//                 'order'  => '2',
-//             ],
-//             'arg1' =>[
-//                 '@value' => 'true',
-//                 '@attributes' =>[
-//                     'type'=>'bool'
-//                 ]
-//             ]
-//         ],
-
-//         [
-//             '@attributes' =>
-//             [
-//                 'opcode' => 'Move',
-//                 'order'  => '3',
-//             ],
-//             'arg1' =>
-//             [
-//                 '@value' => 'true',
-//                 '@attributes' =>
-//                 [
-//                     'type'=>'bool'
-//                 ]
-//             ]
-//         ]
-        
-//     ]
-// ];
-
-echo "\n";
 $xml = Array2XML::createXML('program', $to_xml);
 echo $xml->saveXML();
 
-//echo preg_match(SYMBOL,"string@akuijshfujiagf\\03")."\n";
 exit(OK_ERR);
 
 // ===================================================================================
@@ -155,6 +131,9 @@ function check_instruction($inst)
         exit(OPCODE_ERR);
 
     $arg_arr = INSTRUCTIONS[$opcode];
+    if(count($arg_arr) !== count($inst)-1)
+        exit(OTHER_ERR);
+    
     for($i = 0; $i < count($arg_arr);$i++)
     {
         if(array_key_exists($i+1,$inst))
@@ -165,7 +144,6 @@ function check_instruction($inst)
         else
             exit(OTHER_ERR);
     }
-    echo "OK\n";
 }
 
 function analyze_header($line)
@@ -178,6 +156,8 @@ function analyze_header($line)
 function formating_input()
 {
     $file_string = file_get_contents("php://stdin"); // read stdin into single string
+    if(trim($file_string) === false)
+        exit(HEADER_ERR);
     $without_empty_lines = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", $file_string); // remove additional whitesapces
     $lines = explode("\n", $without_empty_lines); // split into array, each line = 1 array member
     $lines = array_map( 'ltrim', $lines );
