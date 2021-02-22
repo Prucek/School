@@ -1,14 +1,21 @@
 <?php
 
-require __DIR__ ."/Array2XML.php";
-use LaLit\Array2XML;
+/** 
+ * @file parse.php
+ * @date 22.2.2021
+ * @author Peter Rucek, xrucek00
+ */
 
+require __DIR__ ."/Array2XML.php";
+
+/** Error codes */
 define("OK_ERR", 0);
 define("ARG_ERR", 10);
 define("HEADER_ERR", 21);
 define("OPCODE_ERR", 22);
 define("OTHER_ERR", 23);
 
+/** Regex constants */
 const   INTCONS = '(^int@(\+|\-|)\d+$)',
         BOLCONS = '(^bool@(true|false)$)',
         STRCONS = '(^string@(([^\s#\\\\]|\\\\\d{3})*)$)',
@@ -22,6 +29,7 @@ const   INTCONS = '(^int@(\+|\-|)\d+$)',
         VARIABLE = '/'.TVAR.'/',
         CONSTANT = '/'.CONS.'/';
 
+/** Instruction opcodes and their arguments in single associative array*/
 const INSTRUCTIONS =
 [
     'CREATEFRAME' => [],
@@ -64,52 +72,21 @@ const INSTRUCTIONS =
     'JUMPIFNEQ'=> [LABEL,SYMBOL,SYMBOL],
 ];
 
+// Main
+// ===================================================================================
+
 ini_set('display_errors', 'stderr');
 
 argument_parsing($argc,$argv);
 
 $lines = formating_input();
+
 if(!array_key_exists(0,$lines))
         exit(HEADER_ERR);
+
 analyze_header($lines[0]);
 
-$is_empty = true;
-
-//create associative array
-for ($i = 1; $i < count($lines); $i++)
-{
-    if(trim($lines[$i]) === false)
-    {
-        continue;
-    }
-    $is_empty = false;
-
-    $arr = preg_split('/\s+/', trim($lines[$i]));
-    check_instruction($arr);
-
-    $formated[$i]['@attributes'] =  [ 'order'  => $i,'opcode' => strtoupper($arr[0])];
-    for ($j = 1; $j < count($arr); $j++)
-    {
-        if (!strpos($arr[$j],"@") && strtoupper($arr[0]) === 'READ') // type
-        {
-            $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'type']];
-            continue;
-        }
-        $split = explode('@',$arr[$j]);
-        if ($split[0] === 'string' || $split[0] === 'int' || $split[0] === 'bool' || $split[0] === 'nil')
-            $formated[$i]['arg'.$j] = ['@value' => $split[1], '@attributes' =>['type' => $split[0]]];
-        else if (strtoupper($arr[0]) === 'LABEL' || strtoupper($arr[0]) === 'JUMP' || strtoupper($arr[0]) === 'CALL'
-        || strtoupper($arr[0]) === 'JUMPIFEQ' || strtoupper($arr[0]) === 'JUMPIFNEQ')
-            $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'label']];
-        else
-            $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'var']];
-    }
-}
-
-if($is_empty)
-    $to_xml = ['@attributes' => ['language' => 'IPPcode21']];
-else
-    $to_xml = ['@attributes' => ['language' => 'IPPcode21'],'instruction' => $formated];
+$to_xml = to_assoc_array($lines);
 
 $xml = Array2XML::createXML('program', $to_xml);
 echo $xml->saveXML();
@@ -118,11 +95,62 @@ exit(OK_ERR);
 
 // ===================================================================================
 
+/**
+ * @param[in] $lines array of lines, each line = single instruction
+ * @return $to_xml associative array ready to be converted to xml
+ */
+function to_assoc_array($lines)
+{
+    $is_empty = true;
 
+    //create associative array
+    for ($i = 1; $i < count($lines); $i++)
+    {
+        if(trim($lines[$i]) === false)
+        {
+            continue;
+        }
+        $is_empty = false;
 
+        $arr = preg_split('/\s+/', trim($lines[$i]));
+        check_instruction($arr);
+
+        $formated[$i]['@attributes'] =  [ 'order'  => $i,'opcode' => strtoupper($arr[0])];
+        for ($j = 1; $j < count($arr); $j++)
+        {
+            if (!strpos($arr[$j],"@") && strtoupper($arr[0]) === 'READ') // type
+            {
+                $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'type']];
+                continue;
+            }
+            $split = explode('@',$arr[$j]);
+            if ($split[0] === 'string' || $split[0] === 'int' || $split[0] === 'bool' || $split[0] === 'nil') //typeof
+            {
+                $formated[$i]['arg'.$j] = ['@value' => $split[1], '@attributes' =>['type' => $split[0]]];
+            }
+            else if (strtoupper($arr[0]) === 'LABEL' || strtoupper($arr[0]) === 'JUMP' || strtoupper($arr[0]) === 'CALL'
+                    || strtoupper($arr[0]) === 'JUMPIFEQ' || strtoupper($arr[0]) === 'JUMPIFNEQ') // label
+            {
+                $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'label']];
+            }
+            else //var
+            {
+                $formated[$i]['arg'.$j] = ['@value' => $arr[$j], '@attributes' =>['type' => 'var']];
+            }
+        }
+    }
+
+    if($is_empty)
+        $to_xml = ['@attributes' => ['language' => 'IPPcode21']];
+    else
+        $to_xml = ['@attributes' => ['language' => 'IPPcode21'],'instruction' => $formated];
+
+    return $to_xml;
+}
 
 /**
- * $inst is array where 0 is opcode and others are arguments
+ * Searches syntactical and lexical errors in instruction
+ * @param[in] $inst is array where 0 is opcode and others are arguments.
  */
 function check_instruction($inst)
 {
@@ -146,6 +174,9 @@ function check_instruction($inst)
     }
 }
 
+/**
+ * Checks header correctness
+ */
 function analyze_header($line)
 {
     $arr = explode(' ',trim($line));
@@ -153,6 +184,10 @@ function analyze_header($line)
         exit(HEADER_ERR);
 }
 
+/**
+ * Reads from stdin and prepares input
+ * @return $lines array of lines, each line = single instruction
+ */
 function formating_input()
 {
     $file_string = file_get_contents("php://stdin"); // read stdin into single string
@@ -179,6 +214,10 @@ function formating_input()
     return $lines;
 }
 
+/**
+ * @param[in] $argc number of program parameters
+ * @param[in] $argv program parameters
+ */
 function argument_parsing($argc,$argv)
 {
     if ($argc == 2 && $argv[1] == "--help")
@@ -191,7 +230,9 @@ výstup XML reprezentaci programu.
     10 - zakazane kombinace parametru;
     21 - chybna nebo chybejici hlavicka ve zdrojovem kodu zapsanem v IPPcode21;
     22 - neznamy nebo chybny operačni kod ve zdrojovem kodu zapsanem v IPPcode21;
-    23 - jina lexikalni nebo syntakticka chyba zdrojoveho kodu zapsaneho v IPPcode21.\n";
+    23 - jina lexikalni nebo syntakticka chyba zdrojoveho kodu zapsaneho v IPPcode21.
+    
+usage: php7.4 parse.php <file_in_ippcode21.src \n";
 
         exit(OK_ERR);
     }

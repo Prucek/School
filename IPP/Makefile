@@ -36,6 +36,7 @@ tests:
 	echo $$? >tmp.txt
 	diff -Z tmp.txt Test_files/tests/parse-only/write_test.rc
 	diff -Eb tmp.xml Test_files/tests/parse-only/write_test.out
+	make clean
 
 clean: 
 	rm -f tmp.txt tmp.xml
