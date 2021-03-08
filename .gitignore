@@ -11,6 +11,8 @@ SDL-1.2.15/
 *.tar.gz
 *.tar
 *.gz
+*.tgz
+*.zip
 
 # Prerequisites
 *.d
