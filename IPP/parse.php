@@ -84,7 +84,7 @@ $lines = formating_input();
 if(!array_key_exists(0,$lines))
         exit(HEADER_ERR);
 
-analyze_header($lines[0]);
+check_header($lines[0]);
 
 $to_xml = to_assoc_array($lines);
 
@@ -177,7 +177,7 @@ function check_instruction($inst)
 /**
  * Checks header correctness
  */
-function analyze_header($line)
+function check_header($line)
 {
     $arr = explode(' ',trim($line));
     if (strtoupper($arr[0]) !== '.IPPCODE21' || count($arr) > 1)
