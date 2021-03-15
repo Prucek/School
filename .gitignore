@@ -4,6 +4,8 @@
 !*/
 !Makefile
 
+IPK/pub
+
 # SDL library
 SDL-1.2.15/
 
