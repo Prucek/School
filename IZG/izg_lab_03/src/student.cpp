@@ -127,10 +127,10 @@ void pinedaTriangle(const Point &v1, const Point &v2, const Point &v3, const RGB
     // Nalezeni obalky (minX, maxX), (minY, maxY) trojuhleniku.
 
     //////// DOPLNTE KOD /////////
-    int minX = MIN(MIN(v1.x,v2.x),v3.x);
-    int minY = MIN(MIN(v1.y,v2.y),v3.y);
-    int maxX = MAX(MAX(v1.x,v2.x),v3.x);
-    int maxY = MAX(MAX(v1.y,v2.y),v3.y);
+    int minX = MIN(MIN(v1.x, v2.x), v3.x);
+    int minY = MIN(MIN(v1.y, v2.y), v3.y);
+    int maxX = MAX(MAX(v1.x, v2.x), v3.x);
+    int maxY = MAX(MAX(v1.y, v2.y), v3.y);
 
 
     // Oriznuti obalky (minX, maxX, minY, maxY) trojuhleniku podle rozmeru okna.
@@ -138,8 +138,8 @@ void pinedaTriangle(const Point &v1, const Point &v2, const Point &v3, const RGB
     //////// DOPLNTE KOD /////////
     minX = MAX(minX, 0);
     minY = MAX(minY, 0);
-	maxX = MIN (maxX, width -1);
-	maxY = MIN (maxY, height -1);
+	maxX = MIN(maxX, width - 1);
+	maxY = MIN(maxY, height - 1);
 
 
     // Spocitani parametru hranove funkce (deltaX, deltaY) pro kazdou hranu.
@@ -166,29 +166,29 @@ void pinedaTriangle(const Point &v1, const Point &v2, const Point &v3, const RGB
     // vyuzijte hodnoty hranove funkce E (x, y) z bodu P (x, y).
 
     //////// DOPLNTE KOD /////////
-    int e1_maxX = a1 * maxX + b1 * maxY + c1;
-	int e2_maxX = a2 * maxX + b2 * maxY + c2;
-	int e3_maxX = a3 * maxX + b3 * maxY + c3;
+    int e1_minX = a1 * minX + b1 * minY + c1;
+	int e2_minX = a2 * minX + b2 * minY + c2;
+	int e3_minX = a3 * minX + b3 * minY + c3;
 
-    for (int y = maxY; y >= minY; y--)
+    for (int y = minY; y <= maxY; y++)
 	{
-		int e1 = e1_maxX; 
-		int e2 = e2_maxX; 
-		int e3 = e3_maxX;
+		int e1 = e1_minX; 
+		int e2 = e2_minX; 
+		int e3 = e3_minX;
 
-		for (int x = maxX; x >= minX; x--)
+		for (int x = minX; x <= maxX; x++)
 		{
 			if (e1 > 0 && e2 > 0 && e3 > 0)
 				putPixel(x, y, color1);
 
-			e1 -= a1;
-			e2 -= a2;
-			e3 -= a3;
+			e1 += a1;
+			e2 += a2;
+			e3 += a3;
 		}
 
-		e1_maxX -= b1;
-        e2_maxX -= b2;
-        e3_maxX -= b3;
+		e1_minX += b1;
+        e2_minX += b2;
+        e3_minX += b3;
 	}
 
 
@@ -228,14 +228,14 @@ void pinedaPolygon(const Point *points, const int size, const RGBA &color1, cons
     int minX = points[0].x;
     int minY = points[0].y;
     int maxX = points[0].x;
-    int maxY = points[0].x;
+    int maxY = points[0].y;
 
     for (int i = 1; i < size; i++)
     {
-        minX = MIN(points[i].x,minX);
-        minY = MIN(points[i].y,minY);
-        maxX = MAX(points[i].x,maxX);
-        maxY = MIN(points[i].y,maxY);
+        minX = MIN(points[i].x, minX);
+        minY = MIN(points[i].y, minY);
+        maxX = MAX(points[i].x, maxX);
+        maxY = MAX(points[i].y, maxY);
     }
 
     // Oriznuti obalky (minX, maxX), (minY, maxY) polygonu podle rozmeru okna
@@ -243,8 +243,8 @@ void pinedaPolygon(const Point *points, const int size, const RGBA &color1, cons
     //////// DOPLNTE KOD /////////
     minX = MAX(minX, 0);
     minY = MAX(minY, 0);
-	maxX = MIN (maxX, width -1);
-	maxY = MIN (maxY, height -1);
+	maxX = MIN(maxX, width - 1);
+	maxY = MIN(maxY, height - 1);
 
     // Spocitani parametru (deltaX, deltaY) hranove funkce pro kazdou hranu.
 	// Hodnoty deltaX, deltaY jsou souradnicemi vektoru, ktery ma pocatek
@@ -252,19 +252,6 @@ void pinedaPolygon(const Point *points, const int size, const RGBA &color1, cons
 	// Vypocet prvnotnich hodnot hranovych funkci pro jednotlive hrany.
 
     //////// DOPLNTE KOD /////////
-    EdgeParams edgeParams(size);
-    for (int i = 0; i < size; i++)
-    {
-        if(i == size-1)
-        {
-            edgeParams[i].deltaX = points[i].x - points[0].x;
-            edgeParams[i].deltaY = points[i].y - points[0].y;
-            break;
-        }
-        edgeParams[i].deltaX = points[i].x - points[i+1].x;
-        edgeParams[i].deltaY = points[i].y - points[i+1].y;
-    }
-
     EdgeFncValues a(size);
     EdgeFncValues b(size);
     EdgeFncValues c(size);
@@ -272,27 +259,15 @@ void pinedaPolygon(const Point *points, const int size, const RGBA &color1, cons
     {
         if(i == size-1)
         {
-            a[i] = edgeParams[i].deltaY - edgeParams[0].deltaY;
-            b[i] = edgeParams[0].deltaX - edgeParams[i].deltaX;
-            c[i] = edgeParams[i].deltaX * edgeParams[0].deltaY - edgeParams[0].deltaX * edgeParams[i].deltaY;
+            b[i]= points[0].x - points[i].x;
+            a[i] = points[i].y - points[0].y;
+            c[i] = points[i].x * points[0].y - points[i].y * points[0].x;
             break;
         }
-        a[i] = edgeParams[i].deltaY - edgeParams[i+1].deltaY;
-        b[i] = edgeParams[i+1].deltaX - edgeParams[i].deltaX;
-        c[i] = edgeParams[i].deltaX * edgeParams[i+1].deltaY - edgeParams[i+1].deltaX * edgeParams[i].deltaY;
+        b[i] = points[i+1].x - points[i].x;
+        a[i] = points[i].y - points[i+1].y;
+        c[i] = points[i].x * points[i+1].y - points[i].y * points[i+1].x;
     }
-
-    // int a1 = v1.y - v2.y;
-	// int a2 = v2.y - v3.y;
-	// int a3 = v3.y - v1.y;
-
-	// int b1 = v2.x -v1.x;
-	// int b2 = v3.x - v2.x;
-	// int b3 = v1.x - v3.x;
-
-	// int c1 = v1.x * v2.y - v2.x * v1.y;
-	// int c2 = v2.x * v3.y - v3.x * v2.y;
-	// int c3 = v3.x * v1.y - v1.x * v3.y;
 
     // Test konvexnosti polygonu    
 
@@ -306,32 +281,38 @@ void pinedaPolygon(const Point *points, const int size, const RGBA &color1, cons
     //////// DOPLNTE KOD /////////
 
 
+    EdgeFncValues e_minX(size);
+    for (int i = 0; i < size; i++)
+    {
+        e_minX[i] = a[i] * minX + b[i] * minY + c[i];
+    }
+    EdgeFncValues e(size);
+    for (int y = minY; y <= maxY; y++)
+	{
+        for (int i = 0; i < size; i++)
+            e[i] = e_minX[i];
 
-    // int e1_maxX = a1 * maxX + b1 * maxY + c1;
-	// int e2_maxX = a2 * maxX + b2 * maxY + c2;
-	// int e3_maxX = a3 * maxX + b3 * maxY + c3;
+		for (int x = minX; x <= maxX; x++)
+		{
+            bool result = true;
+            for(int i = 0; i < size; i++)
+            {
+                if(e[i] < 0) 
+                {
+                    result = false;
+                    break;
+                }
+            }
+			if (result)
+				putPixel(x, y, color1);
 
-    // for (int y = maxY; y >= minY; y--)
-	// {
-	// 	int e1 = e1_maxX; 
-	// 	int e2 = e2_maxX; 
-	// 	int e3 = e3_maxX;
+            for (int i = 0; i < size; i++)
+                e[i] += a[i];
+		}
 
-	// 	for (int x = maxX; x >= minX; x--)
-	// 	{
-	// 		if (e1 > 0 && e2 > 0 && e3 > 0)
-	// 			putPixel(x, y, color1);
-
-	// 		e1 -= a1;
-	// 		e2 -= a2;
-	// 		e3 -= a3;
-	// 	}
-
-	// 	e1_maxX -= b1;
-    //     e2_maxX -= b2;
-    //     e3_maxX -= b3;
-	// }
-
+        for (int i = 0; i < size; i++)
+             e_minX[i] += b[i];
+	}
 
     // Prekresleni hranic polygonu barvou color2.
     for (int i = 0; i < size; i++) {
