@@ -5,6 +5,7 @@ import sys
 import getopt
 import re
 import time
+import os
 
 # Macros
 
@@ -65,12 +66,23 @@ def send(msg, sock):
     sock.send(message)
 
 
-def recv(sock):
+def decoded_recv(sock):
     try:
         msg = sock.recv(64) # should be enough for header
     except:
-        disconnect("Could not connect !", sock)
-    return msg
+        disconnect("Could not connect!", sock)
+    
+    while True:
+        try:
+            decoded = msg.decode(FORMAT)
+        except:
+            continue
+        break
+
+    if (decoded == ""):
+        disconnect("Did no recieve anything!", fsp_socket)
+
+    return decoded
 
 
 def parse_msg(msg, sock):
@@ -78,24 +90,31 @@ def parse_msg(msg, sock):
     if a[0] == "OK":
         return a[1]
     if a[0] == "ERR":
-        disconnect("Could not connect! " + msg, sock)
+        disconnect("Could not connect!\n" + msg, sock)
 
 
 def get_msg_len(msg, sock):
     a = msg.split("\r\n\r\n")
     header = a[0].split(":")
-    length = header[1].strip()
-    header_len = len(a[0])+ 4 # \r\n\r\n
+    length = int(header[1].strip())
+    header_len = len(a[0]) + 4 # \r\n\r\n
 
     val = msg.find("Success")
     if val == -1:
-        new = sock.recv(int(length))
+        new = sock.recv(length)
         msg += new.decode(FORMAT)
         disconnect(msg, sock)
     else:
-        byte_msg = bytearray(msg[int(header_len):], encoding= FORMAT)
-        return int(length), byte_msg
+        byte_msg = bytearray(msg[header_len:], encoding = FORMAT)
+        return length, byte_msg
 
+def get_byte_data(msg, sock):
+    length, msg_from_header = get_msg_len(msg, fsp_socket)
+    byte_msg = bytearray(msg_from_header)
+    while len(byte_msg) < length:
+        new = fsp_socket.recv(length)
+        byte_msg += new
+    return byte_msg
 
 ### Main ###
 ######################################
@@ -128,33 +147,51 @@ hostname, path_and_file = get_hostname(surl)
 nsp_socket = connect(adress, port, socket.SOCK_DGRAM)
 
 send("WHEREIS "+ hostname + "\r\n", nsp_socket)
-msg = recv(nsp_socket)
+msg = decoded_recv(nsp_socket)
 
-add_and_port = parse_msg(msg.decode(FORMAT), nsp_socket)
+add_and_port = parse_msg(msg, nsp_socket)
 adress, port = get_adress(add_and_port)
 nsp_socket.close()
 
 fsp_socket = connect(adress, port, socket.SOCK_STREAM)
-send("GET " + path_and_file + " FSP/1.0\r\nHostname: " + hostname + "\r\nAgent: xrucek00\r\n\r\n",fsp_socket)
-msg = recv(fsp_socket)
-
-while True:
-    try:
-        decoded = msg.decode(FORMAT)
-    except:
-        continue
-    break
-
-length, msg_from_header= get_msg_len(decoded, fsp_socket)
-byte_msg = bytearray(msg_from_header)
-while len(byte_msg) < length:
-    new = fsp_socket.recv(length)
-    byte_msg += new
 
 a = path_and_file.split("/")
 file = a[len(a)-1]
+if (file == "*"):
+    send("GET index FSP/1.0\r\nHostname: " + hostname + "\r\nAgent: xrucek00\r\n\r\n",fsp_socket)
+else:
+    send("GET " + path_and_file + " FSP/1.0\r\nHostname: " + hostname + "\r\nAgent: xrucek00\r\n\r\n",fsp_socket)
+
+
+msg = decoded_recv(fsp_socket)
+
+byte_msg = get_byte_data(msg, fsp_socket)
+
 f = open(file, "wb")
 f.write(byte_msg)
 f.close()
+fsp_socket.close()
+
+if(file == "*"):
+    index = open("*","r")
+    lines = index.readlines()
+    lines = map(lambda s: s.strip(), lines)
+    for i in lines:
+        fsp_socket = connect(adress, port, socket.SOCK_STREAM)
+        send("GET " + i + " FSP/1.0\r\nHostname: " + hostname + "\r\nAgent: xrucek00\r\n\r\n",fsp_socket)
+        msg = decoded_recv(fsp_socket)
+        byte_msg = get_byte_data(msg, fsp_socket)
+        
+        a = i.split("/")
+        i = a[len(a)-1]
+        
+        f = open(i, "wb")
+        f.write(byte_msg)
+        f.close()
+
+    index.close()
+    os.remove("*")
+
+
 
 ######################################
