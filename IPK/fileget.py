@@ -1,4 +1,9 @@
 #!/usr/bin/python3.7
+"""
+    Author: Peter Rucek, xrucek00
+    Date: 24.3.2021
+    Project: IPK project 1 - client for File Transfer Protocol
+"""
 
 import socket
 import sys
@@ -6,12 +11,14 @@ import getopt
 import re
 import time
 import os
+import select
 
 # Macros
 
 FORMAT = "utf-8"
 USAGE_ERR = 2
 SOCKET_ERR = 3
+ERROR = -1
 
 # Functions
 
@@ -21,8 +28,10 @@ def usage():
     sys.exit(USAGE_ERR)
 
 
-def get_adress(adr):
+def parse_adress_and_port(adr):
     a = adr.split(":")
+    if len(a) != 2:
+        usage()
     try:
         socket.inet_aton(a[0])
     except socket.error:
@@ -38,7 +47,7 @@ def check_protocol(p):
         usage()
 
 
-def get_hostname(surl):
+def parse_surl(surl):
     s = surl.replace("fsp://","")
     hostname = s.split("/", 1)[0]
     path_and_file = s.split("/", 1)[1]
@@ -51,7 +60,7 @@ def connect(adress, port, sock_type):
     try:
         s.connect((adress, int(port)))
     except:
-        disconnect("Could not connect!", s)
+        disconnect("ERROR: Could not connect!", s)
     return s
 
 
@@ -70,19 +79,20 @@ def decoded_recv(sock):
     try:
         msg = sock.recv(64) # should be enough for header
     except:
-        disconnect("Could not connect!", sock)
-    
+        return ERROR, ERROR
+    else:
+        if len(msg) == 0:
+            return ERROR, ERROR
     while True:
         try:
-            decoded = msg.decode(FORMAT)
+            decoded = msg.decode(FORMAT,'ignore')
         except:
             continue
         break
-
     if (decoded == ""):
-        disconnect("Did no recieve anything!", fsp_socket)
+        return ERROR, ERROR
 
-    return decoded
+    return decoded, msg
 
 
 def parse_msg(msg, sock):
@@ -90,31 +100,50 @@ def parse_msg(msg, sock):
     if a[0] == "OK":
         return a[1]
     if a[0] == "ERR":
-        disconnect("Could not connect!\n" + msg, sock)
+        disconnect("ERROR: Could not find file or server!", sock)
 
 
-def get_msg_len(msg, sock):
-    a = msg.split("\r\n\r\n")
+def get_msg_len(msg_dec, msg_not_dec, sock):
+
+    a = msg_dec.split("\r\n\r\n")
     header = a[0].split(":")
-    length = int(header[1].strip())
-    header_len = len(a[0]) + 4 # \r\n\r\n
+    length = header[1].strip()
+    header_len = len(a[0]) + len("\r\n\r\n")
 
-    val = msg.find("Success")
-    if val == -1:
-        new = sock.recv(length)
-        msg += new.decode(FORMAT)
-        disconnect(msg, sock)
+    val = msg_dec.find("Success")
+    if val == ERROR:
+        disconnect("ERROR: Could not connect!", sock)
     else:
-        byte_msg = bytearray(msg[header_len:], encoding = FORMAT)
-        return length, byte_msg
+        byte_msg = bytearray(msg_not_dec[header_len:])
+        return int(length), byte_msg
 
-def get_byte_data(msg, sock):
-    length, msg_from_header = get_msg_len(msg, fsp_socket)
+def get_byte_data(msg_dec, msg_not_dec, sock):
+    length, msg_from_header = get_msg_len(msg_dec, msg_not_dec, sock)
     byte_msg = bytearray(msg_from_header)
+
+    sock.setblocking(0)
+    begin = time.time()
+    timeout = 20
+    new = []
+    old = []
+
     while len(byte_msg) < length:
-        new = fsp_socket.recv(length)
-        byte_msg += new
+        if time.time()-begin > timeout:
+            return ERROR
+        try:
+            new = sock.recv(length - len(byte_msg))
+        except:
+            pass
+
+        if new and old != new:
+            byte_msg += new
+            old = new
+            begin=time.time()
+        else:
+            time.sleep(0.1)
+
     return byte_msg
+
 
 ### Main ###
 ######################################
@@ -139,55 +168,82 @@ for i in opts:
 
 # Socketing
 
-adress, port = get_adress(name_server)
+adress, port = parse_adress_and_port(name_server)
 check_protocol(surl)
 
-hostname, path_and_file = get_hostname(surl)
+hostname, path_and_file = parse_surl(surl)
 
-nsp_socket = connect(adress, port, socket.SOCK_DGRAM)
+nsp_socket = connect(adress, port, socket.SOCK_DGRAM) # UDP
 
-send("WHEREIS "+ hostname + "\r\n", nsp_socket)
-msg = decoded_recv(nsp_socket)
+send("WHEREIS "+ hostname + "\r\n", nsp_socket) # NSP protocol
+msg , _= decoded_recv(nsp_socket)
+if msg == ERROR:
+    disconnect("ERROR: [NSP] Could not receive or decode data!",nsp_socket)
 
 add_and_port = parse_msg(msg, nsp_socket)
-adress, port = get_adress(add_and_port)
+adress, port = parse_adress_and_port(add_and_port)
 nsp_socket.close()
 
-fsp_socket = connect(adress, port, socket.SOCK_STREAM)
+fsp_socket = connect(adress, port, socket.SOCK_STREAM) #TCP
 
 a = path_and_file.split("/")
 file = a[len(a)-1]
-if (file == "*"):
+
+print("Downloding",file,"...")
+
+# FSP protocol 
+if (file == "*"): # GET ALL
     send("GET index FSP/1.0\r\nHostname: " + hostname + "\r\nAgent: xrucek00\r\n\r\n",fsp_socket)
-else:
+else: # GET single
     send("GET " + path_and_file + " FSP/1.0\r\nHostname: " + hostname + "\r\nAgent: xrucek00\r\n\r\n",fsp_socket)
 
 
-msg = decoded_recv(fsp_socket)
+decoded, not_decoded = decoded_recv(fsp_socket)
+if decoded == ERROR:
+    disconnect("ERROR: [FSP] Could not receive or decode data!",fsp_socket)
 
-byte_msg = get_byte_data(msg, fsp_socket)
+byte_msg = get_byte_data(decoded, not_decoded, fsp_socket)
+if byte_msg == ERROR:
+    disconnect("ERROR: Could not receive data!",fsp_socket)
 
 f = open(file, "wb")
 f.write(byte_msg)
 f.close()
 fsp_socket.close()
 
-if(file == "*"):
+print("         read successfully!")
+
+if(file == "*"): # GET ALL
     index = open("*","r")
     lines = index.readlines()
     lines = map(lambda s: s.strip(), lines)
     for i in lines:
         fsp_socket = connect(adress, port, socket.SOCK_STREAM)
         send("GET " + i + " FSP/1.0\r\nHostname: " + hostname + "\r\nAgent: xrucek00\r\n\r\n",fsp_socket)
-        msg = decoded_recv(fsp_socket)
-        byte_msg = get_byte_data(msg, fsp_socket)
-        
+
+        print("Downloding",i,"...")
+
+        decoded, not_decoded = decoded_recv(fsp_socket)
+        if decoded == ERROR:
+            fsp_socket.close()
+            print("ERROR: File recv",i," was not read!")
+            continue
+
+        byte_msg = get_byte_data(decoded, not_decoded, fsp_socket)
+        if byte_msg == ERROR:
+            fsp_socket.close()
+            print("ERROR: File byte",i," was not read!")
+            continue
+
         a = i.split("/")
         i = a[len(a)-1]
         
         f = open(i, "wb")
         f.write(byte_msg)
         f.close()
+
+        print("         read successfully!")
+        fsp_socket.close()
 
     index.close()
     os.remove("*")
