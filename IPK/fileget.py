@@ -23,7 +23,7 @@ ERROR = -1
 # Functions
 
 def usage():
-    print("Usage : ./fileget -n <ip_adress>:<port> -f fsp://SERVER_NAME/PATH/TO/file.txt")
+    print("Usage : python3.7 fileget.py -n <ip_adress>:<port> -f fsp://SERVER_NAME/PATH/TO/file.txt")
     print("Wrong arguments")
     sys.exit(USAGE_ERR)
 
@@ -188,13 +188,11 @@ fsp_socket = connect(adress, port, socket.SOCK_STREAM) #TCP
 
 a = path_and_file.split("/")
 file = a[len(a)-1]
-if (file == "*"):
-    file = "index"
 
 print("Downloding",file,"...")
 
 # FSP protocol 
-if (file == "index"): # GET ALL
+if (file == "*"): # GET ALL
     send("GET index FSP/1.0\r\nHostname: " + hostname + "\r\nAgent: xrucek00\r\n\r\n",fsp_socket)
 else: # GET single
     send("GET " + path_and_file + " FSP/1.0\r\nHostname: " + hostname + "\r\nAgent: xrucek00\r\n\r\n",fsp_socket)
@@ -215,8 +213,8 @@ fsp_socket.close()
 
 print("         read successfully!")
 
-if(file == "index"): # GET ALL
-    index = open("index","r")
+if(file == "*"): # GET ALL
+    index = open("*","r")
     lines = index.readlines()
     lines = map(lambda s: s.strip(), lines)
     for i in lines:
@@ -248,5 +246,5 @@ if(file == "index"): # GET ALL
         fsp_socket.close()
 
     index.close()
-    os.remove("index")
+    os.remove("*")
 
