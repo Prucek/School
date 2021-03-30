@@ -29,6 +29,7 @@ ERROR_OK = 0
 ERROR_10 = 10
 ERROR_11 = 11
 ERROR_31 = 31
+ERROR_32 = 32
 
 # Argument checking
 def usage():
@@ -51,7 +52,7 @@ input_file = ''
 source_file = ''
 
 def open_file(file):
-    if os.access(file, os.R_OK):
+    if os.access(file, os.R_OK) and os.path.isfile(file):
         with open(file) as fp:
             return fp.read()
     else:
@@ -76,9 +77,52 @@ elif len(opts) == 2 and opts[0][1] != '' and opts[1][1] != '':
 else:
     usage()
 
+
+if input_file == sys.stdin:
+    input_file = ''
+    for line in sys.stdin:
+        input_file += line
+
+if source_file == sys.stdin:
+    source_file = ''
+    for line in sys.stdin:
+        source_file += line
+
 try:
-    root = ET.fromstring(source_file)
+    root = ET.fromstringlist(source_file)
 except:
     print("ERROR 31: Not xml file",file=sys.stderr)
     exit(ERROR_31)
 
+# Root check
+if root.tag != 'program':
+    print("ERROR 32: Wrong xml file",file=sys.stderr)
+    exit(ERROR_32)
+
+
+list_of_root_atrib = list(root.attrib.items())
+if len(list_of_root_atrib) > 3:
+    print("ERROR 32: Wrong xml file",file=sys.stderr)
+    exit(ERROR_32)
+
+is_ok = False
+for i in range(len(list_of_root_atrib)):
+    if list_of_root_atrib[i][0] == 'language' and list_of_root_atrib[i][1] == 'IPPcode21':
+        is_ok = True
+    elif list_of_root_atrib[i][0] != 'name' and list_of_root_atrib[i][0] != 'description':
+        print("ERROR 32: Wrong xml file",file=sys.stderr)
+        exit(ERROR_32)
+
+if not is_ok:
+    print("ERROR 32: Wrong xml file",file=sys.stderr)
+    exit(ERROR_32)
+
+
+# Childs
+for child in root:
+    if child.tag != 'instruction':
+        print("ERROR 32: Wrong xml file",file=sys.stderr)
+        exit(ERROR_32)
+    if 'opcode' not in child.attrib or 'order' not in child.attrib: # order and opcode are required
+        print("ERROR 32: Wrong xml file",file=sys.stderr)
+        exit(ERROR_32)
