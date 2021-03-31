@@ -63,8 +63,14 @@ SDL-1.2.15/
 # Kernel Module Compile Results
 *.mod*
 *.cmd
+
+
 .tmp_versions/
 modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+IPP/.vscode/.ropeproject/config.py
+IPP/__pycache__/constants.cpython-38.pyc
+IPP/__pycache__/error.cpython-38.pyc
+IPP/__pycache__/exec.cpython-38.pyc

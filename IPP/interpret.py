@@ -24,21 +24,18 @@ import getopt
 import sys
 import os
 import xml.etree.ElementTree as ET
+import re
+import error as e
+import exec
+import constants as cons
 
-ERROR_OK = 0
-ERROR_10 = 10
-ERROR_11 = 11
-ERROR_31 = 31
-ERROR_32 = 32
 
 # Argument checking
 def usage():
-    print("Usage: python3.8 inerpret.py [--input=<file>] [--source=<file>]",file=sys.stderr)
-    exit(ERROR_10)
+    e.error(e.ERROR_10,"Usage: python3.8 inerpret.py [--input=<file>] [--source=<file>]")
 
 if len(sys.argv) == 2 and sys.argv[1] == '--help':
-    print("Usage: python3.8 inerpret.py [--input=<file>] [--source=<file>]",file=sys.stderr)
-    exit(ERROR_OK)
+    e.error(e.ERROR_OK,"Usage: python3.8 inerpret.py [--input=<file>] [--source=<file>]")
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], '', ['input=','source='])
@@ -56,9 +53,9 @@ def open_file(file):
         with open(file) as fp:
             return fp.read()
     else:
-        print("ERROR 11: Can not open file",file=sys.stderr)
-        exit(ERROR_11)
+        e.error(e.ERROR_11,"ERROR 11: Can not open file")
 
+# Read files
 if len(opts) == 1 and opts[0][0] == '--input' and opts[0][1] != '':
     input_file = open(opts[0][1],"r")
     source_file = sys.stdin
@@ -88,41 +85,68 @@ if source_file == sys.stdin:
     for line in sys.stdin:
         source_file += line
 
+# Read XML
 try:
     root = ET.fromstringlist(source_file)
 except:
-    print("ERROR 31: Not xml file",file=sys.stderr)
-    exit(ERROR_31)
+    e.error(e.ERROR_31,"ERROR 31: Not xml file")
 
 # Root check
 if root.tag != 'program':
-    print("ERROR 32: Wrong xml file",file=sys.stderr)
-    exit(ERROR_32)
+    e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
 
 
 list_of_root_atrib = list(root.attrib.items())
 if len(list_of_root_atrib) > 3:
-    print("ERROR 32: Wrong xml file",file=sys.stderr)
-    exit(ERROR_32)
+    e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
 
 is_ok = False
 for i in range(len(list_of_root_atrib)):
     if list_of_root_atrib[i][0] == 'language' and list_of_root_atrib[i][1] == 'IPPcode21':
         is_ok = True
     elif list_of_root_atrib[i][0] != 'name' and list_of_root_atrib[i][0] != 'description':
-        print("ERROR 32: Wrong xml file",file=sys.stderr)
-        exit(ERROR_32)
+        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
 
 if not is_ok:
-    print("ERROR 32: Wrong xml file",file=sys.stderr)
-    exit(ERROR_32)
+    e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+
+interpret = exec.Interpret()
 
 
-# Childs
+# Child check 
 for child in root:
     if child.tag != 'instruction':
-        print("ERROR 32: Wrong xml file",file=sys.stderr)
-        exit(ERROR_32)
+        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
     if 'opcode' not in child.attrib or 'order' not in child.attrib: # order and opcode are required
-        print("ERROR 32: Wrong xml file",file=sys.stderr)
-        exit(ERROR_32)
+        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+
+    opcode = ''
+    order = 0
+
+    for attrib, value in child.attrib.items():
+        if attrib == 'opcode':
+            opcode = value
+        if attrib == 'order' and int(value) >= 0:
+            order = int(value)
+
+    args = []
+    for arg in child:
+
+        if arg.tag != 'arg1' and arg.tag != 'arg2' and arg.tag != 'arg3':
+            e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+
+        if 'type' not in arg.attrib:
+            e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+
+        
+        if arg.attrib['type'] not in cons.TYPES:
+            e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+
+        args.append((arg.attrib['type'],arg.text))
+        for error in arg:
+            if error != '':
+                e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+
+    interpret.add_instruction(opcode.upper(),order,args)
+
+interpret.execute()
