@@ -7,6 +7,7 @@ import operator
 class Interpret:
     def __init__(self):
         self.instructions = []
+        self.stack = []
         self.frames = Frames()
 
     def add_instruction(self, opcode, order, args):
@@ -64,7 +65,13 @@ class Interpret:
                 else:
                     print(instruction.args[0][1], end ='')
 
-            # elif instruction.opcode == 'PUSHS':
+            elif instruction.opcode == 'PUSHS':
+                if instruction.args[0][0] == 'var':
+                    value = self.get_value(instruction.args[0][1])
+                    types = self.get_type(instruction.args[0][1])
+                    self.stack.append((value, types))
+                else:
+                    self.stack.append((instruction.args[0][1], instruction.args[0][0]))
 
             # elif instruction.opcode == 'JUMP':
 
@@ -72,20 +79,32 @@ class Interpret:
 
             # elif instruction.opcode == 'CALL':
 
-            # elif instruction.opcode == 'POPS':
+            elif instruction.opcode == 'POPS':
+                if instruction.args[0][0] == 'var':
+                    tuple = self.stack.pop()
+                    value = tuple[0]
+                    type = tuple[1]
+                    frame, name = instruction.args[0][1].split("@")
+                    var = self.search_variable_by_name(frame,name)
+                    actual_type = var.type
+                    if type != actual_type and actual_type != None:
+                        print('hyba POPS')
+                    var.value = value
+                else:
+                    print('hyba POPSOVA')
 
             elif instruction.opcode == 'DEFVAR':
                 if instruction.args[0][0] == 'var':
                     self.defvar(instruction.args[0][1])
                 else:
-                    print('hyba')
+                    print('hyba DEFVAR')
 
             elif instruction.opcode == 'MOVE':
                 if instruction.args[0][0] == 'var':
                     self.move(instruction.args[0][1], instruction.args[1][1], instruction.args[1][0])
                 elif instruction.args[1][0] == 'var':
                     self.move(instruction.args[1][1],instruction.args[0][1], instruction.args[0][0])
-                else: print('hyba')
+                else: print('hyba MOVE')
 
             # elif instruction.opcode == 'INT2CHAR':
 
@@ -140,7 +159,7 @@ class Interpret:
             self.add_to_lf(var)
         elif frame == 'TF':
             self.add_to_tf(var)
-        else:print('hyba')
+        else:print('hyba FRAME')
 
     def move(self, var_name, value, type):
         """
@@ -151,14 +170,14 @@ class Interpret:
         frame, name = var_name.split("@")
         var = self.search_variable_by_name(frame,name)
         if var == None:
-            print('hyba')
+            print('hyba VAR NOT found')
             return #exit
         
         if type == 'var':
             frame, name = value.split("@")
             tmp = self.search_variable_by_name(frame,name)
             if tmp == None:
-                print('hyba')
+                print('hyba VAR NOT found')
                 return #exit
             var.type = tmp.type
             var.value = tmp.value
@@ -178,6 +197,18 @@ class Interpret:
             return None #exit
         
         return var.value
+
+    def get_type(self, full_var):
+        """ Returns value of variable or None if variable does not exist """
+
+        frame, name = full_var.split("@")
+        var = self.search_variable_by_name(frame,name)
+        if var == None:
+            print('hyba VAR NOT found')
+            return None #exit
+        
+        return var.type
+
 
     def search_variable_by_name(self, frame, var_name):
         """ Searches variable by name in any frame """
@@ -202,7 +233,7 @@ class Interpret:
         return None
 
     def add_to_tf(self, var): # : Variable ->
-        """ Ads variable into TF """
+        """ Adds variable into TF """
 
         if self.frames.tf != None:
             if self.search_variable_by_name('TF',var.name) == None:
@@ -211,7 +242,7 @@ class Interpret:
         else: print('hyba')
 
     def add_to_lf(self, var):
-        """ Ads variable into LF """
+        """ Adds variable into LF """
 
         if self.frames.lf != None:
             if self.search_variable_by_name('LF',var.name) == None:
@@ -220,7 +251,7 @@ class Interpret:
         else: print('hyba')
 
     def add_to_gf(self, var):
-        """ Ads variable into GF """
+        """ Adds variable into GF """
 
         if self.search_variable_by_name('GF',var.name) == None:
             self.frames.gf.append(var)
