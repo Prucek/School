@@ -58,4 +58,4 @@ INSTRUCTIONS = {
     'JUMPIFNEQ': [LABEL,SYMBOL,SYMBOL]
 }
 
-TYPES = ['int', 'bool', 'string', 'float', 'label', 'type', 'var', 'label']
+TYPES = ['int', 'bool', 'string', 'label', 'type', 'var', 'label', 'nil'] #, 'float']

@@ -149,4 +149,4 @@ for child in root:
 
     interpret.add_instruction(opcode.upper(),order,args)
 
-interpret.execute()
+interpret.execute(input_file)
