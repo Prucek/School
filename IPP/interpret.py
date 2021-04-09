@@ -57,7 +57,7 @@ def open_file(file):
 
 # Read files
 if len(opts) == 1 and opts[0][0] == '--input' and opts[0][1] != '':
-    input_file = open(opts[0][1],"r")
+    input_file = open_file(opts[0][1])
     source_file = sys.stdin
 
 elif len(opts) == 1 and opts[0][0] == '--source' and opts[0][1] != '':
@@ -102,7 +102,7 @@ if len(list_of_root_atrib) > 3:
 
 is_ok = False
 for i in range(len(list_of_root_atrib)):
-    if list_of_root_atrib[i][0] == 'language' and list_of_root_atrib[i][1] == 'IPPcode21':
+    if list_of_root_atrib[i][0] == 'language' and list_of_root_atrib[i][1] == 'IPPcode21': ########BACHAAAAA TODO #########
         is_ok = True
     elif list_of_root_atrib[i][0] != 'name' and list_of_root_atrib[i][0] != 'description':
         e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
@@ -126,8 +126,13 @@ for child in root:
     for attrib, value in child.attrib.items():
         if attrib == 'opcode':
             opcode = value
-        if attrib == 'order' and int(value) >= 0:
-            order = int(value)
+        if attrib == 'order':
+            try:
+                order = int(value)
+            except:
+                e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+            if order <= 0:
+                e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
 
     args = []
     for arg in child:
