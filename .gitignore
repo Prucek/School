@@ -5,6 +5,8 @@
 !Makefile
 
 IPK/pub
+__pycache__/
+.vscode/
 
 # SDL library
 SDL-1.2.15/
