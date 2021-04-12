@@ -9,6 +9,7 @@ import operator
 import sys
 
 class Interpret:
+    """ Class that represents the abstractions of the interpret"""
     def __init__(self):
         self.instructions = []
         self.stack = []
@@ -38,7 +39,7 @@ class Interpret:
 
         # Huge case for all instructions 
         cycle = 0
-        while cycle < len(self.instructions): # because of jumps
+        while cycle < len(self.instructions):
             instruction = self.instructions[cycle]
 
 
@@ -929,6 +930,8 @@ class Interpret:
     #end of execute
 
     def format_string(self, string):
+        """ Formats escape sequnces in string to chars"""
+
         i = 0
         for char in string:
             if char == "\\":
@@ -943,6 +946,8 @@ class Interpret:
 
 
     def find_label(self,to_find_label):
+        """ Runs thru all instructions and fins a label with name @param to_fin_label"""
+
         label_count = 0
         return_instruction = None
         for instruction in self.instructions:
@@ -1051,6 +1056,8 @@ class Interpret:
 
 
     def search_variable(self, full_var):
+        """ Searches a variable and returns it"""
+
         frame, name = full_var.split("@")
         var = self.search_variable_by_name(frame, name)
         if var == None:
@@ -1094,6 +1101,7 @@ class Interpret:
 # end of Interpret class
 
 class Instruction:
+    """ Class that represents the abstractions of an instruction"""
     def __init__(self, opcode, order, args):
         self.opcode = opcode
         self.order = order
@@ -1101,6 +1109,7 @@ class Instruction:
 
 
 class Variable:
+    """ Class that represents the abstractions of a variable"""
     def __init__(self, name):
         self.name = name
         self.type = None
@@ -1108,6 +1117,7 @@ class Variable:
 
 
 class Frames:
+    """ Class that represents the abstractions of all frames"""
     def __init__(self):
         self.gf = []
         self.lf = None

@@ -83,7 +83,7 @@ if len(list_of_root_atrib) > 3:
 
 is_ok = False
 for i in range(len(list_of_root_atrib)):
-    if list_of_root_atrib[i][0] == 'language' and list_of_root_atrib[i][1] == 'IPPcode21': ########BACHAAAAA TODO #########
+    if list_of_root_atrib[i][0] == 'language' and list_of_root_atrib[i][1] == 'IPPcode21':
         is_ok = True
     elif list_of_root_atrib[i][0] != 'name' and list_of_root_atrib[i][0] != 'description':
         error(32,"ERROR 32: Wrong xml file")
