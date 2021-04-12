@@ -1,20 +1,21 @@
+# Author: Peter Rucek, xrucek00
+# File: library.py
+# Date: 12.4.2021
+# Description: Some constants and error priniting
+
+import sys
+
 INTCONS = '(^int@(\+|\-|)\d+$)'
 BOLCONS = '(^bool@(true|false)$)'
 STRCONS = '(^string@(([^\s#\\\\]|\\\\\d{3})*)$)'
 NILCONS = '(^nil@nil$)'
-TVAR = '(^(GF|TF|LF)@([a-z]|[A-Z]|_|\-|\$|\&|\%|\*|\!|\?)([a-z]|[A-Z]|[0-9]|_|\-|\$|\&|\%|\*|\!|\?)*$)'
-CONS = '('+INTCONS+'|'+BOLCONS+'|'+STRCONS+'|'+NILCONS+')'
 
+VARIABLE = '(^(GF|TF|LF)@([a-z]|[A-Z]|_|\-|\$|\&|\%|\*|\!|\?)([a-z]|[A-Z]|[0-9]|_|\-|\$|\&|\%|\*|\!|\?)*$)'
+CONSTANT = '('+INTCONS+'|'+BOLCONS+'|'+STRCONS+'|'+NILCONS+')'
 TYPE = '^(int|bool|string)$'
 LABEL = '^([a-z]|[A-Z]|_|\-|\$|\&|\%|\*|\!|\?)([a-z]|[A-Z]|[0-9]|_|\-|\$|\&|\%|\*|\!|\?)*$'
-SYMBOL = '('+CONS+'|'+TVAR+')'
-VARIABLE = TVAR
-CONSTANT = CONS
+SYMBOL = '('+CONSTANT+'|'+VARIABLE+')'
 
-
-# match = re.search(CONSTANT, 'string@\12a')
-# if match == None:
-#     print('NENI TO TAM')
 
 INSTRUCTIONS = {
 
@@ -58,4 +59,9 @@ INSTRUCTIONS = {
     'JUMPIFNEQ': [LABEL,SYMBOL,SYMBOL]
 }
 
-TYPES = ['int', 'bool', 'string', 'label', 'type', 'var', 'label', 'nil'] #, 'float']
+TYPES = ['int', 'bool', 'string', 'label', 'type', 'var', 'label', 'nil']
+
+
+def error(err_code, msg):
+    print(msg,file=sys.stderr)
+    exit(err_code)

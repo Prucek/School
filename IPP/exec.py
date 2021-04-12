@@ -1,9 +1,12 @@
-import constants as cons
-import error as e
+# Author: Peter Rucek, xrucek00
+# File: exec.py
+# Date: 12.4.2021
+# Description: Executes all instructions
+
+import library as l
 import re
 import operator
-import time # DELETE
-
+import sys
 
 class Interpret:
     def __init__(self):
@@ -12,19 +15,18 @@ class Interpret:
         self.call_stack = []
         self.frames = Frames()
 
+
     def add_instruction(self, opcode, order, args):
         """ Adds new instruction into self.instructions """
 
         new = Instruction(opcode, order, args)
         self.instructions.append(new)
-        if opcode not in cons.INSTRUCTIONS:
-            e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+        if opcode not in l.INSTRUCTIONS:
+            l.error(32,"ERROR 32: Wrong xml file")
         
-        if len(cons.INSTRUCTIONS[opcode]) != len(args):
-            e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+        if len(l.INSTRUCTIONS[opcode]) != len(args):
+            l.error(32,"ERROR 32: Wrong xml file")
 
-        # for inst in cons.INSTRUCTIONS[opcode]:
-        #check nil - nil bool true/false
 
     def execute(self, input_file):
         """ Executes the whole program - all instructions in self.instructions """
@@ -49,7 +51,7 @@ class Interpret:
                     self.frames.frame_stack.append(self.frames.tf)
                     self.frames.lf = self.frames.tf
                     self.frames.tf = None
-                else: e.error(55,"ERROR 55: Frame error")
+                else: l.error(55,"ERROR 55: Frame error")
 
 
             elif instruction.opcode == 'POPFRAME':
@@ -60,16 +62,26 @@ class Interpret:
                         self.frames.frame_stack.append(self.frames.lf)
                     else:
                         self.frames.lf = None
-                else: e.error(55,"ERROR 55: Frame error")
+                else: l.error(55,"ERROR 55: Frame error")
+
 
             elif instruction.opcode == 'RETURN':
                 if len(self.call_stack) != 0:
                     cycle = self.call_stack.pop()
                     continue
-                e.error(56,"ERROR 56: Value not found")
+                l.error(56,"ERROR 56: Value not found")
 
 
-            # elif instruction.opcode == 'BREAK': #DEBUG INFO
+            elif instruction.opcode == 'BREAK': #DEBUG INFO
+                print('BREAK:', file=sys.stderr)
+                print(cycle + 1,'. instruction from',len(self.instructions), file=sys.stderr)
+                print('GF         ', self.frames.gf, file=sys.stderr)
+                print('LF         ', self.frames.lf, file=sys.stderr)
+                print('TF         ', self.frames.tf, file=sys.stderr)
+                print('Stack      ', self.stack, file=sys.stderr)
+                print('Call stack ', self.call_stack, file=sys.stderr)
+                print(file=sys.stderr)
+
 
 
             elif instruction.opcode == 'EXIT':
@@ -77,27 +89,32 @@ class Interpret:
                     try:
                         retcode = int(instruction.args[0][1]) 
                     except:
-                        e.error(53,"ERROR 53: Wrong operands")
+                        l.error(53,"ERROR 53: Wrong operands")
 
                 elif instruction.args[0][0] == 'var':
                     type = self.get_type(instruction.args[0][1])
                     value = self.get_value(instruction.args[0][1])  
-                    if value == None: e.error(56,"ERROR 56: Value not found")
-                    if type != 'int': e.error(53,"ERROR 53: Wrong operands")
+                    if value == None: l.error(56,"ERROR 56: Value not found")
+                    if type != 'int': l.error(53,"ERROR 53: Wrong operands")
                     try:
                         retcode = int(value) 
                     except:
-                        e.error(53,"ERROR 53: Wrong operands")
+                        l.error(53,"ERROR 53: Wrong operands")
                 else:
-                    e.error(53,"ERROR 53: Wrong operand")
+                    l.error(53,"ERROR 53: Wrong operand")
 
                 if retcode >= 0 and retcode <= 49 :
                     exit(retcode)
                 else:
-                    e.error(57,"ERROR 57: Wrong operand")
+                    l.error(57,"ERROR 57: Wrong operand")
 
 
-            # elif instruction.opcode == 'DPRINT': #DEBUG INFO
+            elif instruction.opcode == 'DPRINT': #DEBUG INFO
+                if instruction.args[0][0] == 'var':
+                    print('DPRINT: Value of ', instruction.args[0][1], ' is ', self.get_value(instruction.args[0][1]), file=sys.stderr)
+                else:
+                    print('DPRINT: Value is ', instruction.args[0][1], file=sys.stderr)
+                print(file=sys.stderr)
 
 
             elif instruction.opcode == 'WRITE':
@@ -105,7 +122,7 @@ class Interpret:
                     type = self.get_type(instruction.args[0][1])
                     value = self.get_value(instruction.args[0][1])
                     if value == None or type == None:
-                        e.error(56,"ERROR 56: Value not found")
+                        l.error(56,"ERROR 56: Value not found")
                     if type != 'nil':
                         print(value, end='')
                 elif instruction.args[0][0] == 'string':
@@ -118,7 +135,7 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                     if var.value == None :
-                        e.error(56,"ERROR 56: Value not found")
+                        l.error(56,"ERROR 56: Value not found")
                     self.stack.append((var.value, var.type))
                 else:
                     self.stack.append((instruction.args[0][1], instruction.args[0][0]))
@@ -126,28 +143,28 @@ class Interpret:
 
             elif instruction.opcode == 'JUMP':
                 if instruction.args[0][0] != 'label': 
-                    e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                    l.error(e.ERROR_32,"ERROR 32: Wrong xml file")
                 label_instruction = self.find_label(instruction.args[0][1])
                 if label_instruction == None: 
-                    e.error(52,"ERROR 52: Label does not exist")
+                    l.error(52,"ERROR 52: Label does not exist")
                 cycle = self.instructions.index(label_instruction)
 
 
             elif instruction.opcode == 'LABEL':
                 if instruction.args[0][0] != 'label':
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 ret = self.find_label(instruction.args[0][1]) # just checking params
                 if ret == None:
-                    e.error(52,"ERROR 52: Label does not exist")
+                    l.error(52,"ERROR 52: Label does not exist")
                 pass
 
 
             elif instruction.opcode == 'CALL':
                 if instruction.args[0][0] != 'label':
-                    e.error(53,"ERROR 53: Wrong operands")
-                label_instruction = self.find_label(instruction.args[0][1]) # just checking params
+                    l.error(53,"ERROR 53: Wrong operands")
+                label_instruction = self.find_label(instruction.args[0][1])
                 if label_instruction == None:
-                    e.error(52,"ERROR 52: Label does not exist")
+                    l.error(52,"ERROR 52: Label does not exist")
                 cycle = self.instructions.index(label_instruction)
                 self.call_stack.append(self.instructions.index(instruction) + 1)
 
@@ -157,24 +174,21 @@ class Interpret:
                     try:
                         tuple = self.stack.pop()
                     except:
-                        e.error(56,"ERROR 56: Value not found")
+                        l.error(56,"ERROR 56: Value not found")
                     value = tuple[0]
                     type = tuple[1]
                     var = self.search_variable(instruction.args[0][1])
-                    actual_type = var.type
-                    if type != actual_type and actual_type != None:
-                        print('hyba POPS')
                     var.value = value
                     var.type = type
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
 
             elif instruction.opcode == 'DEFVAR':
                 if instruction.args[0][0] == 'var':
                     self.defvar(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
 
             elif instruction.opcode == 'MOVE':
@@ -185,18 +199,18 @@ class Interpret:
                         continue
                     self.move(instruction.args[0][1], instruction.args[1][1], instruction.args[1][0])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
 
             elif instruction.opcode == 'INT2CHAR':
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                     if var.type != 'string' and var.type != None:
-                            e.error(53,"ERROR 53: Wrong operands")
+                            l.error(53,"ERROR 53: Wrong operands")
                     if instruction.args[1][0] == 'var':
                         type = self.get_type(instruction.args[1][1])
                         if type != 'int' and type != None:
-                            e.error(53,"ERROR 53: Wrong operands")
+                            l.error(53,"ERROR 53: Wrong operands")
                         value = self.get_value(instruction.args[1][1])
                         var.type = 'string'
                         try:
@@ -204,27 +218,27 @@ class Interpret:
                             try:
                                 var.value = chr(tmp)
                             except:
-                                e.error(58,"ERROR 58: Wrong string operations")
+                                l.error(58,"ERROR 58: Wrong string operations")
                         except:
-                            e.error(56,"ERROR 56: Value not found")
+                            l.error(56,"ERROR 56: Value not found")
                     elif instruction.args[1][0] == 'int':
                         var.type = 'string'
                         try:
                             var.value = chr(int(instruction.args[1][1]))
                         except:
-                            e.error(58,"ERROR 58: Wrong string operations")
+                            l.error(58,"ERROR 58: Wrong string operations")
                     else:
-                        e.error(53,"ERROR 53: Wrong operands")
+                        l.error(53,"ERROR 53: Wrong operands")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
 
             elif instruction.opcode == 'READ':
                 if instruction.args[0][0] != 'var' or instruction.args[1][0] != 'type':
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 var = self.search_variable(instruction.args[0][1])
-                if var.type != instruction.args[1][1] and var.type != None: # CAN YOU RETYPE VARIABLE ?
-                    e.error(53,"ERROR 53: Wrong operands")
+                if var.type != instruction.args[1][1] and var.type != None:
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 var.type = instruction.args[1][1]
 
@@ -232,7 +246,7 @@ class Interpret:
                     ret = inputs[index]
                     index += 1
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if var.type == 'int':
                     try:
@@ -253,7 +267,7 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
                     value1 = var1.value
@@ -262,10 +276,10 @@ class Interpret:
                     value1 = instruction.args[1][1]
                     type1 = 'string'
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
-                if value1 == None and type1 == None: e.error(56,"ERROR 56: Value not found")
-                if type1 != 'string': e.error(53,"ERROR 53: Wrong operands")
+                if value1 == None and type1 == None: l.error(56,"ERROR 56: Value not found")
+                if type1 != 'string': l.error(53,"ERROR 53: Wrong operands")
                 if value1 == None: value1 = ''
 
                 var.type = 'int'
@@ -274,7 +288,7 @@ class Interpret:
 
             elif instruction.opcode == 'TYPE':
                 if instruction.args[0][0] != 'var' :
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 var = self.search_variable(instruction.args[0][1])
                 if instruction.args[1][0] == 'var':
                     type = self.get_type(instruction.args[1][1])
@@ -293,19 +307,19 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
                     value1 = var1.value
                     if var1.type != 'bool':
-                        e.error(53,"ERROR 53: Wrong operands")
+                        l.error(53,"ERROR 53: Wrong operands")
                 elif instruction.args[1][0] == 'bool':
                     value1 = instruction.args[1][1]
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
-                if value1 == None: e.error(56,"ERROR 56: Value not found")
+                if value1 == None: l.error(56,"ERROR 56: Value not found")
 
                 var.type = 'bool'
                 if value1 == 'false':
@@ -318,34 +332,34 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
-                    if var1.value == None : e.error(56,"ERROR 56: Value not found")
-                    if var1.type != 'int': e.error(53,"ERROR 53: Wrong operands")
+                    if var1.value == None : l.error(56,"ERROR 56: Value not found")
+                    if var1.type != 'int': l.error(53,"ERROR 53: Wrong operands")
                     value1 = int(var1.value)
                 elif instruction.args[1][0] == 'int':
                     try:
                         value1 = int(instruction.args[1][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
-                    if var2.value == None : e.error(56,"ERROR 56: Value not found")
-                    if var2.type != 'int': e.error(53,"ERROR 53: Wrong operands")
+                    if var2.value == None : l.error(56,"ERROR 56: Value not found")
+                    if var2.type != 'int': l.error(53,"ERROR 53: Wrong operands")
                     value2 = int(var2.value)
                 elif instruction.args[2][0] == 'int':
                     try:
                         value2 = int(instruction.args[2][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
-                var.type = 'int' #CAN YOU RETYPE VAR 
+                var.type = 'int'
                 var.value = value1 + value2
 
 
@@ -353,34 +367,34 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
-                    if var1.value == None : e.error(56,"ERROR 56: Value not found")
-                    if var1.type != 'int': e.error(53,"ERROR 53: Wrong operands")
+                    if var1.value == None : l.error(56,"ERROR 56: Value not found")
+                    if var1.type != 'int': l.error(53,"ERROR 53: Wrong operands")
                     value1 = int(var1.value)
                 elif instruction.args[1][0] == 'int':
                     try:
                         value1 = int(instruction.args[1][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
-                    if var2.value == None : e.error(56,"ERROR 56: Value not found")
-                    if var2.type != 'int': e.error(53,"ERROR 53: Wrong operands")
+                    if var2.value == None : l.error(56,"ERROR 56: Value not found")
+                    if var2.type != 'int': l.error(53,"ERROR 53: Wrong operands")
                     value2 = int(var2.value)
                 elif instruction.args[2][0] == 'int':
                     try:
                         value2 = int(instruction.args[2][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
-                var.type = 'int' #CAN YOU RETYPE VAR 
+                var.type = 'int'
                 var.value = value1 - value2
 
 
@@ -388,34 +402,34 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
-                    if var1.value == None : e.error(56,"ERROR 56: Value not found")
-                    if var1.type != 'int': e.error(53,"ERROR 53: Wrong operands")
+                    if var1.value == None : l.error(56,"ERROR 56: Value not found")
+                    if var1.type != 'int': l.error(53,"ERROR 53: Wrong operands")
                     value1 = int(var1.value)
                 elif instruction.args[1][0] == 'int':
                     try:
                         value1 = int(instruction.args[1][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
-                    if var2.value == None : e.error(56,"ERROR 56: Value not found")
-                    if var2.type != 'int': e.error(53,"ERROR 53: Wrong operands")
+                    if var2.value == None : l.error(56,"ERROR 56: Value not found")
+                    if var2.type != 'int': l.error(53,"ERROR 53: Wrong operands")
                     value2 = int(var2.value)
                 elif instruction.args[2][0] == 'int':
                     try:
                         value2 = int(instruction.args[2][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
-                var.type = 'int' #CAN YOU RETYPE VAR 
+                var.type = 'int'
                 var.value = value1 * value2
 
 
@@ -423,36 +437,36 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
-                    if var1.value == None : e.error(56,"ERROR 56: Value not found")
-                    if var1.type != 'int': e.error(53,"ERROR 53: Wrong operands")
+                    if var1.value == None : l.error(56,"ERROR 56: Value not found")
+                    if var1.type != 'int': l.error(53,"ERROR 53: Wrong operands")
                     value1 = int(var1.value)
                 elif instruction.args[1][0] == 'int':
                     try:
                         value1 = int(instruction.args[1][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
-                    if var2.value == None : e.error(56,"ERROR 56: Value not found")
-                    if var2.type != 'int': e.error(53,"ERROR 53: Wrong operands")
+                    if var2.value == None : l.error(56,"ERROR 56: Value not found")
+                    if var2.type != 'int': l.error(53,"ERROR 53: Wrong operands")
                     value2 = int(var2.value)
                 elif instruction.args[2][0] == 'int':
                     try:
                         value2 = int(instruction.args[2][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if value2 == 0:
-                    e.error(57,"ERROR 57: Division by 0")
-                var.type = 'int' #CAN YOU RETYPE VAR 
+                    l.error(57,"ERROR 57: Division by 0")
+                var.type = 'int'
                 var.value = value1 // value2
 
 
@@ -460,7 +474,7 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
                     type1 = var1.type
@@ -473,7 +487,7 @@ class Interpret:
                         type1 = instruction.args[1][0]
                         value1 = int(instruction.args[1][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
                     type1 = instruction.args[1][0]
                     value1 = instruction.args[1][1]
@@ -492,7 +506,7 @@ class Interpret:
                         type2 = instruction.args[2][0]
                         value2 = int(instruction.args[2][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
                     type2 = instruction.args[2][0]
                     value2 = instruction.args[2][1]
@@ -504,25 +518,25 @@ class Interpret:
                 if type2 == 'string':
                         value2 = self.format_string(value2)
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
-                if type1 == None or type2 == None: e.error(53,"ERROR 53: Wrong operands")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
+                if type1 == None or type2 == None: l.error(53,"ERROR 53: Wrong operands")
 
                 if type1 == type2 and type1 != 'nil':
                     if value1 < value2:
-                        var.type = 'bool' #RETYPING 
+                        var.type = 'bool'
                         var.value = 'true'
                     else:
-                        var.type = 'bool' #RETYPING 
+                        var.type = 'bool'
                         var.value = 'false'
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
 
             elif instruction.opcode == 'GT':
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
                     type1 = var1.type
@@ -535,7 +549,7 @@ class Interpret:
                         type1 = instruction.args[1][0]
                         value1 = int(instruction.args[1][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
                     type1 = instruction.args[1][0]
                     value1 = instruction.args[1][1]
@@ -554,7 +568,7 @@ class Interpret:
                         type2 = instruction.args[2][0]
                         value2 = int(instruction.args[2][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
                     type2 = instruction.args[2][0]
                     value2 = instruction.args[2][1]
@@ -566,25 +580,25 @@ class Interpret:
                 if type2 == 'string':
                         value2 = self.format_string(value2)
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
-                if type1 == None or type2 == None: e.error(53,"ERROR 53: Wrong operands")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
+                if type1 == None or type2 == None: l.error(53,"ERROR 53: Wrong operands")
 
                 if type1 == type2 and type1 != 'nil':
                     if value1 > value2:
-                        var.type = 'bool' #RETYPING 
+                        var.type = 'bool'
                         var.value = 'true'
                     else:
-                        var.type = 'bool' #RETYPING 
+                        var.type = 'bool'
                         var.value = 'false'
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
 
             elif instruction.opcode == 'EQ':
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
                     type1 = var1.type
@@ -597,7 +611,7 @@ class Interpret:
                         type1 = instruction.args[1][0]
                         value1 = int(instruction.args[1][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
                     type1 = instruction.args[1][0]
                     value1 = instruction.args[1][1]
@@ -616,7 +630,7 @@ class Interpret:
                         type2 = instruction.args[2][0]
                         value2 = int(instruction.args[2][1])
                     except:
-                        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                        l.error(32,"ERROR 32: Wrong xml file")
                 else:
                     type2 = instruction.args[2][0]
                     value2 = instruction.args[2][1]
@@ -628,25 +642,25 @@ class Interpret:
                 if type2 == 'string':
                         value2 = self.format_string(value2)
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
-                if type1 == None or type2 == None: e.error(53,"ERROR 53: Wrong operands")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
+                if type1 == None or type2 == None: l.error(53,"ERROR 53: Wrong operands")
 
                 if (type1 == type2) or (type1 == 'nil' and type2 == 'string') or (type2 == 'nil' and  type1 == 'string'):
                     if value1 == value2:
-                        var.type = 'bool' #RETYPING 
+                        var.type = 'bool'
                         var.value = 'true'
                     else:
-                        var.type = 'bool' #RETYPING 
+                        var.type = 'bool'
                         var.value = 'false'
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
 
             elif instruction.opcode == 'AND':
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
@@ -654,7 +668,7 @@ class Interpret:
                 elif instruction.args[1][0] == 'bool':
                     value1 = instruction.args[1][1]
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
@@ -662,9 +676,9 @@ class Interpret:
                 elif instruction.args[2][0] == 'bool':
                     value2 = instruction.args[2][1]
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
 
                 var.type = 'bool'
                 if value1 == value2 and value1 == 'true':
@@ -677,7 +691,7 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
@@ -685,7 +699,7 @@ class Interpret:
                 elif instruction.args[1][0] == 'bool':
                     value1 = instruction.args[1][1]
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
@@ -693,9 +707,9 @@ class Interpret:
                 elif instruction.args[2][0] == 'bool':
                     value2 = instruction.args[2][1]
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
 
                 var.type = 'bool'
                 if value1 == 'true' or value2 == 'true':
@@ -708,27 +722,27 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
                     value1 = var1.value
                 elif instruction.args[1][0] == 'string':
                     value1 = instruction.args[1][1]
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
                     value2 = var2.value
                 elif instruction.args[2][0] == 'int':
                     value2 = int(instruction.args[2][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 var.type = 'int'
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
                 if value2 >= len(value1) or value2 < 0:
-                    e.error(58,"ERROR 58: Wrong string operations")
+                    l.error(58,"ERROR 58: Wrong string operations")
                 var.value = ord(value1[value2])
 
 
@@ -736,7 +750,7 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
                     value1 = var1.value
@@ -745,7 +759,7 @@ class Interpret:
                     value1 = instruction.args[1][1]
                     type1 = 'string'
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
                     value2 = var2.value
@@ -754,7 +768,7 @@ class Interpret:
                     value2 = instruction.args[2][1]
                     type2 = 'string'
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 if value1 == None: 
                     value1 = ''
@@ -763,11 +777,11 @@ class Interpret:
                 if type1 == 'string':
                         value1 = self.format_string(value1)
                 else:
-                    e.error(56,"ERROR 56: Value not found")
+                    l.error(56,"ERROR 56: Value not found")
                 if type2 == 'string':
                         value2 = self.format_string(value2)
                 else:
-                    e.error(56,"ERROR 56: Value not found")
+                    l.error(56,"ERROR 56: Value not found")
 
                 var.type = 'string'
                 var.value = value1 + value2
@@ -776,27 +790,27 @@ class Interpret:
             elif instruction.opcode == 'SETCHAR':
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
-                    if var.value == None : e.error(56,"ERROR 56: Value not found")
-                    if var.type != 'string': e.error(53,"ERROR 53: Wrong operands")
+                    if var.value == None : l.error(56,"ERROR 56: Value not found")
+                    if var.type != 'string': l.error(53,"ERROR 53: Wrong operands")
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
                     value1 = var1.value
                 elif instruction.args[1][0] == 'int':
                     value1 = int(instruction.args[1][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
                     value2 = var2.value
                 elif instruction.args[2][0] == 'string':
                     value2 = instruction.args[2][1]
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
-                if value1 >= len(var.value) or value1 < 0 : e.error(58,"ERROR 58: Wrong string operations")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
+                if value1 >= len(var.value) or value1 < 0 : l.error(58,"ERROR 58: Wrong string operations")
 
                 var.value = self.format_string(var.value )
                 value2 = self.format_string(value2)
@@ -816,98 +830,98 @@ class Interpret:
                 if instruction.args[0][0] == 'var':
                     var = self.search_variable(instruction.args[0][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[1][0] == 'var':
                     var1 = self.search_variable(instruction.args[1][1])
                     value1 = var1.value
                 elif instruction.args[1][0] == 'string':
                     value1 = instruction.args[1][1]
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 if instruction.args[2][0] == 'var':
                     var2 = self.search_variable(instruction.args[2][1])
                     value2 = var2.value
                 elif instruction.args[2][0] == 'int':
                     value2 = int(instruction.args[2][1])
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
                 var.type = 'string'
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
                 if value2 >= len(value1) or value2 < 0:
-                    e.error(58,"ERROR 58: Wrong string operations")
+                    l.error(58,"ERROR 58: Wrong string operations")
                 var.value = value1[value2]
 
 
             elif instruction.opcode == 'JUMPIFEQ':
                 if instruction.args[1][0] == 'var':
-                    value1 = self.get_value(instruction.args[1][1]) #what if NIL
+                    value1 = self.get_value(instruction.args[1][1])
                     type1 = self.get_type(instruction.args[1][1])
                 else:
                     if instruction.args[1][0] == 'int':
                         value1 = int(instruction.args[1][1])
                     else:
-                        value1 = instruction.args[1][1] #what if NIL
+                        value1 = instruction.args[1][1]
                     type1 = instruction.args[1][0]
                 if instruction.args[2][0] == 'var': 
-                    value2 = self.get_value(instruction.args[2][1]) #what if NIL
+                    value2 = self.get_value(instruction.args[2][1])
                     type2 = self.get_type(instruction.args[2][1])
                 else:
                     if instruction.args[2][0] == 'int':
                         value2 = int(instruction.args[2][1])
                     else:
-                        value2 = instruction.args[2][1] #what if NIL
+                        value2 = instruction.args[2][1]
                     type2 = instruction.args[2][0]
 
                 if instruction.args[0][0] != 'label':
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 label_instruction = self.find_label(instruction.args[0][1])
                 if label_instruction == None:
-                    e.error(52,"ERROR 52: Label does not exist")
+                    l.error(52,"ERROR 52: Label does not exist")
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
                 if type1 == type2:
                     if value1 == value2:
                         cycle = self.instructions.index(label_instruction)
                     else: pass
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
 
             elif instruction.opcode == 'JUMPIFNEQ':
                 if instruction.args[1][0] == 'var':
-                    value1 = self.get_value(instruction.args[1][1]) #what if NIL
+                    value1 = self.get_value(instruction.args[1][1])
                     type1 = self.get_type(instruction.args[1][1])
                 else:
                     if instruction.args[1][0] == 'int':
                         value1 = int(instruction.args[1][1])
                     else:
-                        value1 = instruction.args[1][1] #what if NIL
+                        value1 = instruction.args[1][1]
                     type1 = instruction.args[1][0]
                 if instruction.args[2][0] == 'var': 
-                    value2 = self.get_value(instruction.args[2][1]) #what if NIL
+                    value2 = self.get_value(instruction.args[2][1])
                     type2 = self.get_type(instruction.args[2][1])
                 else:
                     if instruction.args[2][0] == 'int':
                         value2 = int(instruction.args[2][1])
                     else:
-                        value2 = instruction.args[2][1] #what if NIL
+                        value2 = instruction.args[2][1]
                     type2 = instruction.args[2][0]
 
                 if instruction.args[0][0] != 'label':
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
                 label_instruction = self.find_label(instruction.args[0][1])
                 if label_instruction == None:
-                    e.error(52,"ERROR 52: Label does not exist")
+                    l.error(52,"ERROR 52: Label does not exist")
 
-                if value1 == None or value2 == None: e.error(56,"ERROR 56: Value not found")
+                if value1 == None or value2 == None: l.error(56,"ERROR 56: Value not found")
                 if type1 == type2:
                     if value1 != value2:
                         cycle = self.instructions.index(label_instruction)
                     else: pass
                 else:
-                    e.error(53,"ERROR 53: Wrong operands")
+                    l.error(53,"ERROR 53: Wrong operands")
 
 
             cycle += 1
@@ -923,9 +937,10 @@ class Interpret:
                     string = string[:i] + chr(xyz) + string[i + 4:]
                     i -= 3
                 except:
-                    e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                    l.error(32,"ERROR 32: Wrong xml file")
             i += 1
         return string
+
 
     def find_label(self,to_find_label):
         label_count = 0
@@ -935,7 +950,7 @@ class Interpret:
                 if instruction.args[0][0] == 'label':
                     label_name = instruction.args[0][1]
                 else: 
-                    e.error(52,"ERROR 52: Label does not exist")
+                    l.error(52,"ERROR 52: Label does not exist")
                 if label_name == to_find_label:
                     if label_count == 0:
                         return_instruction = instruction
@@ -944,6 +959,7 @@ class Interpret:
                     label_count += 1
 
         return return_instruction
+
 
     def defvar(self, var_name):
         """ Defines a variable with name var_name and adds it to proper frame """
@@ -955,7 +971,7 @@ class Interpret:
             self.add_to_lf(var)
         elif frame == 'TF':
             self.add_to_tf(var)
-        else:print('hyba FRAME') #TODO
+
 
     def move(self, full_var, value, type):
         """
@@ -966,7 +982,7 @@ class Interpret:
         var = self.search_variable(full_var)
 
         if value == None and type == 'string': value =''
-        if value == None or type == None: e.error(56,"ERROR 56: Value not found")
+        if value == None or type == None: l.error(56,"ERROR 56: Value not found")
         if type == 'var':
             tmp = self.search_variable(value)
             var.type = tmp.type
@@ -978,27 +994,28 @@ class Interpret:
                     var.value = ''
         elif type == 'bool':
             if value.lower() !=  'true' and value.lower() != 'false':
-                e.error(53,"ERROR 53: Wrong operands")
+                l.error(53,"ERROR 53: Wrong operands")
             var.type = type
             var.value = value.lower()
         elif type == 'nil':
             if value != 'nil':
-                e.error(53,"ERROR 53: Wrong operands")
+                l.error(53,"ERROR 53: Wrong operands")
             var.type = type
             var.value = ''
         elif type == 'int':
             var.type = type
             var.value = int(value)
-        else: #type ???
+        else:
             var.type = type
             var.value = value
-        
+
 
     def get_value(self, full_var):
         """ Returns value of variable or None if variable does not exist """
 
         var = self.search_variable(full_var)
         return var.value
+
 
     def get_type(self, full_var):
         """ Returns value of variable or None if variable does not exist """
@@ -1021,24 +1038,26 @@ class Interpret:
                     if var.name == var_name:
                         return var
             else:
-                e.error(55,"ERROR 55: Frame error")
+                l.error(55,"ERROR 55: Frame error")
         elif frame == 'TF':
             if self.frames.tf != None:
                 for var in self.frames.tf:
                     if var.name == var_name:
                         return var
             else:
-                e.error(55,"ERROR 55: Frame error")
+                l.error(55,"ERROR 55: Frame error")
 
         return None
+
 
     def search_variable(self, full_var):
         frame, name = full_var.split("@")
         var = self.search_variable_by_name(frame, name)
         if var == None:
-            e.error(54,"ERROR 54: Variable not found")
-        
+            l.error(54,"ERROR 54: Variable not found")
+
         return var
+
 
     def add_to_tf(self, var):
         """ Adds variable into TF """
@@ -1047,9 +1066,10 @@ class Interpret:
             if self.search_variable_by_name('TF',var.name) == None:
                 self.frames.tf.append(var)
             else:
-                e.error(52,"ERROR 52: Variable redefinition")
+                l.error(52,"ERROR 52: Variable redefinition")
         else:
-            e.error(55,"ERROR 55: Frame error")
+            l.error(55,"ERROR 55: Frame error")
+
 
     def add_to_lf(self, var):
         """ Adds variable into LF """
@@ -1058,9 +1078,10 @@ class Interpret:
             if self.search_variable_by_name('LF',var.name) == None:
                 self.frames.lf.append(var)
             else:
-                e.error(52,"ERROR 52: Variable redefinition")
+                l.error(52,"ERROR 52: Variable redefinition")
         else:
-            e.error(55,"ERROR 55: Frame error")
+            l.error(55,"ERROR 55: Frame error")
+
 
     def add_to_gf(self, var):
         """ Adds variable into GF """
@@ -1068,11 +1089,9 @@ class Interpret:
         if self.search_variable_by_name('GF',var.name) == None:
             self.frames.gf.append(var)
         else:
-            e.error(52,"ERROR 52: Variable redefinition")
+            l.error(52,"ERROR 52: Variable redefinition")
 
-    def print_ins(self):
-        for i in self.instructions:
-            print(i.opcode,i.order,i.args)
+# end of Interpret class
 
 class Instruction:
     def __init__(self, opcode, order, args):
@@ -1086,6 +1105,7 @@ class Variable:
         self.name = name
         self.type = None
         self.value = None
+
 
 class Frames:
     def __init__(self):

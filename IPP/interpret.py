@@ -1,41 +1,22 @@
-# • 10 - chybějící parametr skriptu (je-li třeba) nebo použití zakázané kombinace parametrů;
-# • 11 - chyba při otevírání vstupních souborů (např. neexistence, nedostatečné oprávnění);
-# • 12 - chyba při otevření výstupních souborů pro zápis (např. nedostatečné oprávnění, chyba
-# při zápisu);
-# • 20 – 69 - návratové kódy chyb specifických pro jednotlivé skripty;
-# • 99 - interní chyba (neovlivněná vstupními soubory či parametry příkazové řádky; např. chyba
-# alokace paměti).
-# • 31 - chybný XML formát ve vstupním souboru (soubor není tzv. dobře formátovaný, angl.
-# well-formed, viz [1]);
-# • 32 - neočekávaná struktura XML (např. element pro argument mimo element pro instrukci,
-# instrukce s duplicitním pořadím nebo záporným pořadím) či lexikální nebo syntaktická chyba
-# textových elementů a atributů ve vstupním XML souboru (např. chybný lexém pro číselný
-# nebo řetězcový literál, neznámý operační kód apod.).
-# • 52 - chyba při sémantických kontrolách vstupního kódu v IPPcode21 (např. použití nedefinovaného návěští, redefinice proměnné);
-# • 53 - běhová chyba interpretace – špatné typy operandů;
-# • 54 - běhová chyba interpretace – přístup k neexistující proměnné (rámec existuje);
-# • 55 - běhová chyba interpretace – rámec neexistuje (např. čtení z prázdného zásobníku rámců);
-# • 56 - běhová chyba interpretace – chybějící hodnota (v proměnné, na datovém zásobníku nebo
-# v zásobníku volání);
-# • 57 - běhová chyba interpretace – špatná hodnota operandu (např. dělení nulou, špatná návratová hodnota instrukce EXIT);
-# • 58 - běhová chyba interpretace – chybná práce s řetězcem.
+# Author: Peter Rucek, xrucek00
+# File: interpret.py
+# Date: 12.4.2021
+# Description: Parses arguments and reads XML, main program
 
 import getopt
 import sys
 import os
 import xml.etree.ElementTree as ET
-import re
-import error as e
 import exec
-import constants as cons
+import library as l
 
 
 # Argument checking
 def usage():
-    e.error(e.ERROR_10,"Usage: python3.8 inerpret.py [--input=<file>] [--source=<file>]")
+    error(10,"Usage: python3.8 inerpret.py [--input=<file>] [--source=<file>]")
 
 if len(sys.argv) == 2 and sys.argv[1] == '--help':
-    e.error(e.ERROR_OK,"Usage: python3.8 inerpret.py [--input=<file>] [--source=<file>]")
+    error(0,"Usage: python3.8 inerpret.py [--input=<file>] [--source=<file>]")
 
 try:
     opts, args = getopt.getopt(sys.argv[1:], '', ['input=','source='])
@@ -53,7 +34,7 @@ def open_file(file):
         with open(file) as fp:
             return fp.read()
     else:
-        e.error(e.ERROR_11,"ERROR 11: Can not open file")
+        error(11,"ERROR 11: Can not open file")
 
 # Read files
 if len(opts) == 1 and opts[0][0] == '--input' and opts[0][1] != '':
@@ -89,26 +70,26 @@ if source_file == sys.stdin:
 try:
     root = ET.fromstringlist(source_file)
 except:
-    e.error(e.ERROR_31,"ERROR 31: Not xml file")
+    error(31,"ERROR 31: Not xml file")
 
 # Root check
 if root.tag != 'program':
-    e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+    error(32,"ERROR 32: Wrong xml file")
 
 
 list_of_root_atrib = list(root.attrib.items())
 if len(list_of_root_atrib) > 3:
-    e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+    error(32,"ERROR 32: Wrong xml file")
 
 is_ok = False
 for i in range(len(list_of_root_atrib)):
     if list_of_root_atrib[i][0] == 'language' and list_of_root_atrib[i][1] == 'IPPcode21': ########BACHAAAAA TODO #########
         is_ok = True
     elif list_of_root_atrib[i][0] != 'name' and list_of_root_atrib[i][0] != 'description':
-        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+        error(32,"ERROR 32: Wrong xml file")
 
 if not is_ok:
-    e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+    error(32,"ERROR 32: Wrong xml file")
 
 interpret = exec.Interpret()
 
@@ -116,9 +97,9 @@ interpret = exec.Interpret()
 # Child check 
 for child in root:
     if child.tag != 'instruction':
-        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+        error(32,"ERROR 32: Wrong xml file")
     if 'opcode' not in child.attrib or 'order' not in child.attrib: # order and opcode are required
-        e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+        error(32,"ERROR 32: Wrong xml file")
 
     opcode = ''
     order = 0
@@ -130,27 +111,27 @@ for child in root:
             try:
                 order = int(value)
             except:
-                e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                error(32,"ERROR 32: Wrong xml file")
             if order <= 0:
-                e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                error(32,"ERROR 32: Wrong xml file")
 
     args = []
     for arg in child:
 
         if arg.tag != 'arg1' and arg.tag != 'arg2' and arg.tag != 'arg3':
-            e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+            error(32,"ERROR 32: Wrong xml file")
 
         if 'type' not in arg.attrib:
-            e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+            error(32,"ERROR 32: Wrong xml file")
 
         
-        if arg.attrib['type'] not in cons.TYPES:
-            e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+        if arg.attrib['type'] not in l.TYPES:
+            error(32,"ERROR 32: Wrong xml file")
 
         args.append((arg.attrib['type'],arg.text))
         for error in arg:
             if error != '':
-                e.error(e.ERROR_32,"ERROR 32: Wrong xml file")
+                error(32,"ERROR 32: Wrong xml file")
 
     interpret.add_instruction(opcode.upper(),order,args)
 
