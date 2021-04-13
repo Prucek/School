@@ -1,10 +1,10 @@
 
 CPPFLAGS= -std=c++17 -Wall -Wextra -pedantic -g 
-# LIBS= -lpcap
+LIBS= -lpcap
 
-all: sniffer
+all: clean ipk-sniffer
 
-sniffer: $(SRC)
+ipk-sniffer: $(SRC)
 	g++ $(CPPFLAGS) ipk-sniffer.cpp -o ipk-sniffer $(LIBS)
 
 .PHONY: clean
