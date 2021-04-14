@@ -63,34 +63,37 @@
 #include<netinet/udp.h>	//Provides declarations for udp header
 #include<netinet/tcp.h>	//Provides declarations for tcp header
 #include<netinet/ip.h>	//Provides declarations for ip header
+// #include<net/if_arp.h>
+#include<linux/if_arp.h>
 
 using std::cout;
 using std::endl;
 
 #define no_argument 0
-#define required_argument 1 
+#define required_argument 1
+#define IS_ALL ((tcp || udp || arp || icmp)? false : true)
 
 bool arg_parse(int argc, char* argv[], unsigned *port, unsigned *num, char **interface, bool *tcp, bool *udp, bool *arp, bool *icmp);
 void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *buffer);
-void PrintData (const u_char * data , int Size);
+void print_data (const u_char * data , int size);
 
-int tcp=0,udp=0,icmp=0,others=0,igmp=0,total=0;	
+unsigned port = 0;
+unsigned num  = 0;
+char *interface = nullptr;
+bool tcp = false;
+bool udp = false;
+bool arp = false;
+bool icmp = false;
 
 int main(int argc, char * argv[])
 {
-    unsigned *port = nullptr;
-    unsigned *num  = nullptr;
-    char *interface = nullptr;
-    bool tcp = false;
-    bool udp = false;
-    bool arp = false;
-    bool icmp = false;
-    if (!arg_parse(argc,argv, port, num, &interface, &tcp, &udp, &arp, &icmp))
+    if (!arg_parse(argc, argv, &port, &num, &interface, &tcp, &udp, &arp, &icmp))
     {
         cout << "ERROR: Wrong arguments" << endl;
         return 1;
     }
 
+    if (num == 0) num = 1;
 
     pcap_if_t* devices = nullptr;
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -113,16 +116,16 @@ int main(int argc, char * argv[])
     if (!interface)
     {
         pcap_freealldevs(devices);
-        if (port) free(port);
-        if(num) free(num);
+        // if (port) free(port);
+        // if(num) free(num);
         if(interface) free(interface);
         return 0;
     }
     if (!device)
     {
         pcap_freealldevs(devices);
-        if (port) free(port);
-        if(num) free(num);
+        // if (port) free(port);
+        // if(num) free(num);
         if(interface) free(interface);
         cout << "ERROR: Device not found" << endl;
         return 1;
@@ -133,8 +136,8 @@ int main(int argc, char * argv[])
     if (!pcap) 
     {
         pcap_freealldevs(devices);
-        if (port) free(port);
-        if(num) free(num);
+        // if (port) free(port);
+        // if(num) free(num);
         cout << "ERROR: pcap failed: "<< errbuf << endl;
         return 1;
     }
@@ -156,93 +159,200 @@ int main(int argc, char * argv[])
     //         return 1;
     //     }
     // }
-    
-    if (pcap_loop(pcap, 10, process_packet, nullptr) == PCAP_ERROR) {
-        pcap_close(pcap);
-        cout << "ERROR: pcap failed: " << pcap_geterr(pcap);
-        return 1;
+
+    struct pcap_pkthdr header;	/* The header that pcap gives us */
+	const u_char *packet;		/* The actual packet */
+    const struct sniff_ethernet *ethernet; /* The ethernet header */
+
+    packet = pcap_next(pcap, &header);
+    while(num != 0)
+    {
+        if (pcap_loop(pcap, 1, process_packet, nullptr) == PCAP_ERROR)
+        {
+            pcap_close(pcap);
+            cout << "ERROR: pcap failed: " << pcap_geterr(pcap);
+            return 1;
+        }
     }
+
     pcap_close(pcap);
-    if (port) free(port);
-    if(num) free(num);
+    // if (port) free(port);
+    // if(num) free(num);
 
     return 0;
+}
+
+void print_time_rfc3339()
+{
+    time_t now = time(NULL);
+    struct tm *tm;
+
+    // just for milisec
+    struct timeval tv;
+    gettimeofday(&tv, NULL); 
+
+    int off_sign;
+    int off;
+
+    if ((tm = localtime(&now)) == NULL) {
+        exit(1);
+    }
+    off_sign = '+';
+    off = (int) tm->tm_gmtoff;
+    if (tm->tm_gmtoff < 0) {
+        off_sign = '-';
+        off = -off;
+    }
+    printf("%d-%d-%dT%02d:%02d:%2.3f%c%02d:%02d ",
+           tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+           tm->tm_hour, tm->tm_min, tm->tm_sec + tv.tv_usec / 1000000.0,
+           off_sign, off / 3600, off % 3600);
+}
+
+void print_byte_offset(bool next)
+{
+    static int i = 0;
+    if (next)
+        i = 0;
+    printf("0x%04x", i);
+    i += 16;
 }
 
 // Callback function
 void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *buffer)
 {
-	int size = header->len;
-    
-	
-	//Get the IP Header part of this packet , excluding the ethernet header
-	struct iphdr *iph = (struct iphdr*)(buffer + sizeof(struct ethhdr));
+    (void) args;
+    int size = header->len;
 
-    u_short ip_header_len = (iph->ihl) * 4; // The IHL field contains the size of the IPv4 header, it has 4 bits that specify the number of 32-bit words in the header (5 min - 15 max)
+    //Get the IP Header part of this packet , excluding the ethernet header
+    struct ether_header *eth = (struct ether_header*) (buffer);
 
-    struct sockaddr_in source,dest;
-    memset(&source, 0, sizeof(source));
-	source.sin_addr.s_addr = iph->saddr;
-	
-	memset(&dest, 0, sizeof(dest));
-	dest.sin_addr.s_addr = iph->daddr;
+    struct iphdr *iph = (struct iphdr*)(buffer + sizeof(struct ethhdr));
+    struct arphdr *arph = (struct arphdr*) (buffer + sizeof(struct ethhdr));
 
-    
+    if (ntohs(eth->ether_type) == ETHERTYPE_ARP)
+    {
+        char address[48];
+        char *p = (char *) (buffer + sizeof(struct ethhdr) + sizeof(struct arphdr));
+        for(int i = 0; i < 48; i++)
+            address[i] = p[i];
+        // cout<< (int) arph->ar_hln << endl;
+        printf("%02hhX:%02hhX:%02hhX:%02hhX:%02hhX:%02hhX\n", address[0], address[1], address[2], address[3], address[4], address[5]);
+    }
+    if (ntohs(eth->ether_type) == ETHERTYPE_IP)
+    {
+        cout << "ip header" << endl;
+    }
+    // TODO ETHERTYPE_IPV6		0x86dd	
 
-	++total;
-	switch (iph->protocol) //Check the Protocol and do accordingly...
-	{
-		case 1:  //ICMP Protocol
-        {
-            ++icmp;
-            const struct icmphdr* icmp_header = (struct icmphdr*)(buffer + sizeof(struct ethhdr) + ip_header_len);
-            cout << endl << endl;
-            cout << "ICMP" << endl;
-            cout << inet_ntoa(source.sin_addr) << " : " << " > " << inet_ntoa(dest.sin_addr) << ":";
-            cout << ", length "<< size << " bytes"<< endl;
-            PrintData(buffer,size);
-			break;
-        }
-		case 6:  //TCP Protocol
-        {
-            ++tcp;
-            const struct tcphdr* tcp_header = (struct tcphdr*)(buffer + sizeof(struct ethhdr) + ip_header_len);
-            cout << endl << endl;
-            cout << "TCP" << endl;
-            cout << inet_ntoa(source.sin_addr);
-            cout << " : " << ntohs(tcp_header->source);
-            cout << " > " << inet_ntoa(dest.sin_addr);
-            cout << " : " << ntohs(tcp_header->dest);
-            cout << ", length "<< size << " bytes"<< endl;
-            PrintData(buffer,size);
-			break;
-        }
-		case 17: //UDP Protocol
-        {
-            ++udp;
-            const struct udphdr* udp_header = (struct udphdr*)(buffer + sizeof(struct ethhdr) + ip_header_len);
-            cout << endl << endl;
-            cout << "UDP" << endl;
-            cout << inet_ntoa(source.sin_addr);
-            cout << " : " << ntohs(udp_header->source);
-            cout << " > " << inet_ntoa(dest.sin_addr);
-            cout << " : " << ntohs(udp_header->dest);
-            cout << ", length "<< size << " bytes"<< endl;
-            PrintData(buffer,size);
-			break;
-        }
-		default: //Some Other Protocol like ARP etc. 54 /91
-        {
-            ++others;
-            cout << endl << endl;
-            cout << "ELSE" << endl;
-            cout << inet_ntoa(source.sin_addr);
-            cout << " : " << " > " << inet_ntoa(dest.sin_addr)<< ":";
-            cout << ", length "<< size << " bytes"<< endl;
-            PrintData(buffer,size);
-			break;
-        }		
-	}
+    num--;
+
+    // u_short ip_header_len = (iph->ihl) * 4; // The IHL field contains the size of the IPv4 header, it has 4 bits that specify the number of 32-bit words in the header (5 min - 15 max)
+
+    // struct sockaddr_in source,dest;
+    // memset(&source, 0, sizeof(source));
+    // source.sin_addr.s_addr = iph->saddr;
+
+    // memset(&dest, 0, sizeof(dest));
+    // dest.sin_addr.s_addr = iph->daddr;
+
+    // if (iph->protocol != 17 && iph->protocol != 6 && iph->protocol != 0 )
+    // {
+    //     cout << (int)iph->protocol << endl;
+    //     num--;
+    // }
+
+    // switch (iph->protocol) //Check the Protocol and do accordingly...
+    // {
+        // case 1:  //ICMP Protocol
+        // {
+        //     if (IS_ALL || icmp)
+        //     {
+        //         const struct icmphdr* icmp_header = (struct icmphdr*)(buffer + sizeof(struct ethhdr) + ip_header_len);
+        //         cout << endl;
+        //         cout << "ICMP" << endl;
+        //         print_time_rfc3339();
+        //         cout << inet_ntoa(source.sin_addr) << " : " << " > " << inet_ntoa(dest.sin_addr) << ":";
+        //         cout << ", length "<< size << " bytes"<< endl;
+        //         cout << endl;
+        //         print_data(buffer, size);
+        //         num--;
+        //     }
+        //     break;
+        // }
+        // case 6:  //TCP Protocol
+        // {
+        //     if (IS_ALL || tcp)
+        //     {
+        //         const struct tcphdr* tcp_header = (struct tcphdr*)(buffer + sizeof(struct ethhdr) + ip_header_len);
+        //         cout << endl;
+        //         cout << "TCP" << endl;
+        //         print_time_rfc3339();
+        //         cout << inet_ntoa(source.sin_addr);
+        //         cout << " : " << ntohs(tcp_header->source);
+        //         cout << " > " << inet_ntoa(dest.sin_addr);
+        //         cout << " : " << ntohs(tcp_header->dest);
+        //         cout << ", length "<< size << " bytes"<< endl;
+        //         cout << endl;
+        //         print_data(buffer, size);
+        //         num--;
+        //     }
+        //     break;
+        // }
+        // case 17: //UDP Protocol
+        // {
+        //     if (IS_ALL || udp)
+        //     {
+        //         const struct udphdr* udp_header = (struct udphdr*)(buffer + sizeof(struct ethhdr) + ip_header_len);
+        //         cout << endl;
+        //         cout << "UDP" << endl;
+        //         print_time_rfc3339();
+        //         cout << inet_ntoa(source.sin_addr);
+        //         cout << " : " << ntohs(udp_header->source);
+        //         cout << " > " << inet_ntoa(dest.sin_addr);
+        //         cout << " : " << ntohs(udp_header->dest);
+        //         cout << ", length "<< size << " bytes"<< endl;
+        //         cout << endl;
+        //         print_data(buffer, size);
+        //         num--;
+        //     }
+        //     break;
+        // }
+        // case 54: case 91: //Some Other Protocol like ARP etc. 54 /91
+        // {
+        //     if (IS_ALL || arp)
+        //     {
+        //         cout << endl;
+        //         cout << "ARP" << endl;
+        //         print_time_rfc3339();
+        //         cout << inet_ntoa(source.sin_addr);
+        //         cout << " : " << " > " << inet_ntoa(dest.sin_addr)<< ":";
+        //         cout << ", length "<< size << " bytes"<< endl;
+        //         cout << endl;
+        //         print_data(buffer, size);
+        //         num--;
+        //     }
+        //     break;
+        // }
+        // default:
+        // {
+            // if (IS_ALL)
+            // {
+            //     cout << endl;
+            //     cout << "ELSE" << endl;
+            //     print_time_rfc3339();
+            //     cout << inet_ntoa(source.sin_addr);
+            //     cout << " : " << " > " << inet_ntoa(dest.sin_addr)<< ":";
+            //     cout << ", length "<< size << " bytes"<< endl;
+            //     cout << endl;
+            //     print_data(buffer, size);
+            //     num--;
+            // }
+            // if (iph->protocol != 17 && iph->protocol != 6 && iph->protocol != 1)
+        //         cout << iph->protocol;
+        //     break;
+        // }
+    // }
 }
 
 bool arg_parse(int argc, char* argv[], unsigned *port, unsigned *num, char **interface, bool *tcp, bool *udp, bool *arp, bool *icmp)
@@ -289,8 +399,8 @@ bool arg_parse(int argc, char* argv[], unsigned *port, unsigned *num, char **int
             case 'p':
             {
                 char *endptr = nullptr;
-                port = (unsigned *)malloc(sizeof(unsigned));
-                if (!port) return false;
+                // port = (unsigned *)malloc(sizeof(unsigned));
+                // if (!port) return false;
 
                 *port = (unsigned)strtoul(optarg, &endptr, 10);
                 if (strcmp(endptr, "")) 
@@ -306,8 +416,8 @@ bool arg_parse(int argc, char* argv[], unsigned *port, unsigned *num, char **int
             case 'n':
             {
                 char *endptr = nullptr;
-                num = (unsigned *)malloc(sizeof(unsigned));
-                if (!num) return false;
+                // num = (unsigned *)malloc(sizeof(unsigned));
+                // if (!num) return false;
 
                 *num = (unsigned)strtoul(optarg, &endptr, 10);
                 if (strcmp(endptr, "")) 
@@ -343,50 +453,50 @@ bool arg_parse(int argc, char* argv[], unsigned *port, unsigned *num, char **int
     return is_i;
 }
 
-void PrintData (const u_char * data , int Size)
+void print_data (const u_char * data , int size)
 {
-	int i , j;
-	for(i=0 ; i < Size ; i++)
-	{
-		if( i!=0 && i%16==0)   //if one line of hex printing is complete...
-		{
-			cout <<"         ";
-			for(j=i-16 ; j<i ; j++)
-			{
-				if(data[j]>=32 && data[j]<=128)
-				    cout << (unsigned char)data[j]; //if its a number or alphabet
-				
-				else cout <<"."; //otherwise print a dot
-			}
-			cout << endl;
-		} 
-		
-		if(i%16==0) cout << "   ";
-			printf(" %02X",(unsigned int)data[i]);
-				
-		if( i==Size-1)  //print the last spaces
-		{
-			for(j=0;j<15-i%16;j++) 
-			{
-			  printf("   "); //extra spaces
-			}
-			
-			printf("         ");
-			
-			for(j=i-i%16 ; j<=i ; j++)
-			{
-				if(data[j]>=32 && data[j]<=128) 
-				{
-				  printf("%c",(unsigned char)data[j]);
-				}
-				else 
-				{
-				  printf(".");
-				}
-			}
-			
-			printf("\n" );
-		}
-	}
+    int i,j;
+    for(i = 0; i < size; i++)
+    {
+        if(i != 0 && i % 16 == 0)   //if hex part is done
+        {
+            cout <<"         ";
+            for(j = i - 16; j < i; j++)
+            {
+                if(data[j] >= 32 && data[j] <= 128) // printable
+                    cout << (unsigned char)data[j];
+                else 
+                    cout << "."; // else dot
+            }
+            cout << endl;
+        }
+        
+        if(i % 16 == 0)
+        {
+            print_byte_offset((i == 0)? true : false);
+            cout << "   ";
+        }
+
+        printf(" %02x",(unsigned int)data[i]);
+
+        if(i == size - 1)  //print the last line
+        {
+            for(j = 0; j < 15 - i % 16; j++) 
+            {
+                cout << "   "; //extra spaces
+            }
+
+            cout << "         ";
+
+            for(j = i - i % 16; j <= i; j++)
+            {
+                if(data[j] >= 32 && data[j] <= 128) // printable
+                    cout << (unsigned char)data[j];
+                else 
+                    cout << "."; // else dot
+            }
+            cout << endl;
+        }
+    }
 }
 
