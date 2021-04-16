@@ -1,82 +1,13 @@
-// /ipk-sniffer [-i rozhraní | --interface rozhraní] {-p ­­port} {[--tcp|-t] [--udp|-u] [--arp] [--icmp] } {-n num}
+/**
+ * @file ipk-sniffer.cpp
+ * @author Peter Rucek, xrucek00
+ * @date 16.4.2021
+ * Packet sniffer
+ */
 
-// kde
-// -i eth0 (právě jedno rozhraní, na kterém se bude poslouchat. Nebude-li tento parametr uveden, či bude-li uvedené jen -i bez hodnoty, vypíše se seznam aktivních rozhraní)
-// -p 23 (bude filtrování paketů na daném rozhraní podle portu; nebude-li tento parametr uveden, uvažují se všechny porty; pokud je parametr uveden, může se daný port vyskytnout jak v source, tak v destination části)
-// -t nebo --tcp (bude zobrazovat pouze TCP pakety)
-// -u nebo --udp (bude zobrazovat pouze UDP pakety)
-// --icmp (bude zobrazovat pouze ICMPv4 a ICMPv6 pakety)
-// --arp (bude zobrazovat pouze ARP rámce)
-// Pokud nebudou konkrétní protokoly specifikovány, uvažují se k tisknutí všechny (tj. veškerý obsah, nehledě na protokol)
-// -n 10 (určuje počet paketů, které se mají zobrazit; pokud není uvedeno, uvažujte zobrazení pouze jednoho paketu)
-// argumenty mohou být v libovolném pořadí
+#include "ipk-sniffer.hpp"
 
-// Formát výstupu:
-// čas IP : port > IP : port, length délka
-
-// offset_vypsaných_bajtů:  výpis_bajtů_hexa výpis_bajtů_ASCII
-
-// přičemž:
-
-// čas je ve formátu dle RFC3339
-// délka je v bytech
-// (takto vypíšete úplně celý paket)
-
-// Příklady volání:
-
-// ./ipk-sniffer -i eth0 -p 23 --tcp -n 2
-// ./ipk-sniffer -i eth0 --udp
-// ./ipk-sniffer -i eth0 -n 10      
-// ./ipk-sniffer -i eth0 -p 22 --tcp --udp --icmp --arp   .... stejné jako:
-// ./ipk-sniffer -i eth0 -p 22
-// ./ipk-sniffer -i eth0
-
-// Příklady výstupu:
-
-// ./ipk-sniffer -i
-
-// lo0
-// eth0
-
-// ./ipk-sniffer -i eth0
-
-// 2021-03-19T18:42:52.362+01:00 147.229.13.223 : 4093 > 10.10.10.56 : 80, length 112 bytes
-
-// 0x0000:  00 19 d1 f7 be e5 00 04  96 1d 34 20 08 00 45 00  ........ ..4 ..
-// 0x0010:  05 a0 52 5b 40 00 36 06  5b db d9 43 16 8c 93 e5  ..R[@.6. [..C....
-// 0x0020:  0d 6d 00 50 0d fb 3d cd  0a ed 41 d1 a4 ff 50 18  .m.P..=. ..A...P.
-
-// 0x0030:  19 20 c7 cd 00 00 99 17  f1 60 7a bc 1f 97 2e b7  . ...... .`z.....
-// 0x0040:  a1 18 f4 0b 5a ff 5f ac 07 71 a8 ac 54 67 3b 39  ....Z._. .q..Tg;9
-// 0x0050:  4e 31 c5 5c 5f b5 37 ed  bd 66 ee ea b1 2b 0c 26  N1.\_.7. .f...+.&
-// 0x0060:  98 9d b8 c8 00 80 0c 57  61 87 b0 cd 08 80 00 a1  .......W a.......
-
-#include <iostream>
-#include <getopt.h>
-#include <cstring>
-#include <pcap.h>
-
-#include<sys/socket.h>
-#include<arpa/inet.h> // for inet_ntoa()
-#include<net/ethernet.h>
-#include<netinet/ip_icmp.h>	//Provides declarations for icmp header
-#include<netinet/udp.h>	//Provides declarations for udp header
-#include<netinet/tcp.h>	//Provides declarations for tcp header
-#include<netinet/ip.h>	//Provides declarations for ip header
-// #include<net/if_arp.h>
-#include<linux/if_arp.h>
-
-using std::cout;
-using std::endl;
-
-#define no_argument 0
-#define required_argument 1
-#define IS_ALL ((tcp || udp || arp || icmp)? false : true)
-
-bool arg_parse(int argc, char* argv[], char **interface);
-void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *buffer);
-void print_data (const u_char * data , int size);
-
+// Global variables
 unsigned port = 0;
 unsigned num  = 0;
 char *interface = nullptr;
@@ -87,26 +18,33 @@ bool icmp = false;
 
 int main(int argc, char * argv[])
 {
-    if (!arg_parse(argc, argv, &interface))
+    if (!arg_parse(argc, argv))
     {
-        cout << "ERROR: Wrong arguments" << endl;
-        return 1;
+        cerr << "ERROR: Wrong arguments" << endl;
+        return ARG_ERR;
     }
 
-    if (num == 0) num = 1;
+    if (num == 0) 
+    {
+        num = 1; // if num not set print just 1 packet
+    }
 
     pcap_if_t* devices = nullptr;
-    char errbuf[PCAP_ERRBUF_SIZE];
+    char errbuf[PCAP_ERRBUF_SIZE]; // for printing errors
     if(pcap_findalldevs(&devices, errbuf) != 0) 
     {
-        cout << "ERROR: pcap failed: " << errbuf << endl;
-        return 1;
+        cerr << "ERROR: pcap failed: " << errbuf << endl;
+        return PCAP_ERR;
     }
 
+    // Loop thru available devices/interafces
     pcap_if_t* device = nullptr;
     for (pcap_if_t* curr_device = devices ; curr_device; curr_device = curr_device->next)
     {
-        if (!interface) cout << curr_device->name << endl;
+        if (!interface) 
+        {
+            cout << curr_device->name << endl;
+        }
         else if (strcmp(interface, curr_device->name) == 0)
         {
             device = curr_device;
@@ -116,115 +54,83 @@ int main(int argc, char * argv[])
     if (!interface)
     {
         pcap_freealldevs(devices);
-        // if (port) free(port);
-        // if(num) free(num);
-        if(interface) free(interface);
-        return 0;
+        if (interface) 
+        {
+            free(interface);
+        }
+        return OK;
     }
     if (!device)
     {
         pcap_freealldevs(devices);
-        // if (port) free(port);
-        // if(num) free(num);
         if(interface) free(interface);
-        cout << "ERROR: Device not found" << endl;
-        return 1;
+        cerr << "ERROR: Device not found" << endl;
+        return ARG_ERR;
     }
-    if(interface) free(interface);
+    if (interface) 
+    {
+        free(interface);
+    }
 
+    // Open device for packet capturing
     pcap_t* pcap = pcap_open_live(device->name, BUFSIZ, 1, 0, errbuf);
     if (!pcap) 
     {
         pcap_freealldevs(devices);
-        // if (port) free(port);
-        // if(num) free(num);
-        cout << "ERROR: pcap failed: "<< errbuf << endl;
-        return 1;
+        cerr << "ERROR: pcap failed: " << errbuf << endl;
+        return PCAP_ERR;
     }
     pcap_freealldevs(devices);
 
-    // cout << pcap << endl;
+    // Filter port
+    if (port != 0 && (IS_ALL || tcp || udp) ) // Port filtering only if upot tcp ( would not work on arp and icmp)
+    {
+        std::string s = "port " + std::to_string(port);
+        struct bpf_program pgm;
+        if (pcap_compile(pcap, &pgm, s.c_str(), 1, PCAP_NETMASK_UNKNOWN) == PCAP_ERROR)
+        {
+            pcap_close(pcap);
+            cerr << "ERROR: pcap failed: " << pcap_geterr(pcap) << endl;
+            return PCAP_ERR;
+        }
+        if (pcap_setfilter(pcap, &pgm) == PCAP_ERROR) 
+        {
+            pcap_close(pcap);
+            cerr << "ERROR: pcap failed: " << pcap_geterr(pcap) << endl;
+            return PCAP_ERR;
+        }
+    }
 
-    // if (port) {
-    //     bpf_program  filter;
-    //     if (pcap_compile(pcap, &filter, port.c_str(), 1, 0) == -1)
-    //     {
-    //         pcap_close(pcap);
-    //         cout << "pcap_compile() failed: " << pcap_geterr(pcap);
-    //         return 1;
-    //     }
-    //     if (pcap_setfilter(handle, &filter) == -1) {
-    //         pcap_close(handle);
-    //         cout << "pcap_setfilter() failed: " << pcap_geterr(handle);
-    //         return 1;
-    //     }
-    // }
 
-    struct pcap_pkthdr header;	/* The header that pcap gives us */
-	const u_char *packet;		/* The actual packet */
-    const struct sniff_ethernet *ethernet; /* The ethernet header */
+    // struct pcap_pkthdr header;	// The header that pcap gives us
 
-    packet = pcap_next(pcap, &header);
+	// const u_char *packet;		// The actual packet
+    // const struct sniff_ethernet *ethernet; // The ethernet header
+    // TODO IPv6 MATBE ?
+    // packet = pcap_next(pcap, &header);
+
+    // Capture num packets
     while(num != 0)
     {
         if (pcap_loop(pcap, 1, process_packet, nullptr) == PCAP_ERROR)
         {
             pcap_close(pcap);
-            cout << "ERROR: pcap failed: " << pcap_geterr(pcap);
-            return 1;
+            cerr << "ERROR: pcap failed: " << pcap_geterr(pcap) << endl;
+            return PCAP_ERR;
         }
     }
 
     pcap_close(pcap);
-    // if (port) free(port);
-    // if(num) free(num);
 
-    return 0;
+    return OK;
 }
 
-void print_time_rfc3339()
-{
-    time_t now = time(NULL);
-    struct tm *tm;
-
-    // just for milisec
-    struct timeval tv;
-    gettimeofday(&tv, NULL); 
-
-    int off_sign;
-    int off;
-
-    if ((tm = localtime(&now)) == NULL) {
-        exit(1);
-    }
-    off_sign = '+';
-    off = (int) tm->tm_gmtoff;
-    if (tm->tm_gmtoff < 0) {
-        off_sign = '-';
-        off = -off;
-    }
-    printf("%d-%d-%dT%02d:%02d:%2.3f%c%02d:%02d ",
-           tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-           tm->tm_hour, tm->tm_min, tm->tm_sec + tv.tv_usec / 1000000.0,
-           off_sign, off / 3600, off % 3600);
-}
-
-void print_byte_offset(bool next)
-{
-    static int i = 0;
-    if (next)
-        i = 0;
-    printf("0x%04x", i);
-    i += 16;
-}
-
-// Callback function
 void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *buffer)
 {
     (void) args;
     int size = header->len;
 
-    //Get the IP Header part of this packet , excluding the ethernet header
+    // Get the IP Header part of this packet , excluding the ethernet header
     struct ether_header *eth = (struct ether_header*) (buffer);
 
     if (ntohs(eth->ether_type) == ETHERTYPE_ARP)
@@ -235,20 +141,20 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
             int add_size = (int)arph->ar_pln * __CHAR_BIT__;
             char *address = new char[add_size];
 
-            char *p = (char *) (buffer + sizeof(struct ethhdr) + sizeof(struct arphdr) + (int)arph->ar_hln); // shift to first address
+            char *p = (char *) (buffer + sizeof(struct ethhdr) + sizeof(struct arphdr) + (int)arph->ar_hln); // Shift to first address
             for(int i = 0; i < add_size; i++)
                 address[i] = p[i];
 
             cout << endl;
             cout << "ARP" << endl;
             print_time_rfc3339();
-            printf ("%s > ",inet_ntoa(*((struct in_addr*)address))); // print as IP adress
+            printf ("%s > ",inet_ntoa(*((struct in_addr*)address))); // Print as IP adress
 
-            p +=  arph->ar_hln + arph->ar_pln; // shift to second address
+            p +=  arph->ar_hln + arph->ar_pln; // Shift to second address
             for(int i = 0; i < add_size; i++)
                 address[i] = p[i];
 
-            printf ("%s",inet_ntoa(*((struct in_addr*)address))); // print as IP adress
+            printf ("%s",inet_ntoa(*((struct in_addr*)address))); // Print as IP adress
             cout << ", length "<< size << " bytes"<< endl;
             cout << endl;
             print_data(buffer, size);
@@ -262,18 +168,21 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
     if (ntohs(eth->ether_type) == ETHERTYPE_IP)
     {
         struct iphdr *iph = (struct iphdr*)(buffer + sizeof(struct ethhdr));
-        u_short ip_header_len = (iph->ihl) * 4; // The IHL field contains the size of the IPv4 header, it has 4 bits that specify the number of 32-bit words in the header (5 min - 15 max)
+
+        // The IHL field contains the size of the IPv4 header, 
+        // it has 4 bits that specify the number of 32-bit words in the header (5 min - 15 max)
+        u_short ip_header_len = (iph->ihl) * 4;
 
         struct sockaddr_in source,dest;
         memset(&source, 0, sizeof(source));
-        source.sin_addr.s_addr = iph->saddr;
+        source.sin_addr.s_addr = iph->saddr; // source address
 
         memset(&dest, 0, sizeof(dest));
-        dest.sin_addr.s_addr = iph->daddr;
+        dest.sin_addr.s_addr = iph->daddr; // destination address
 
-        switch (iph->protocol) //Check the Protocol and do accordingly...
+        switch (iph->protocol)
         {
-            case 1:  //ICMP Protocol
+            case 1: // ICMP Protocol
             {
                 if (IS_ALL || icmp)
                 {
@@ -288,7 +197,7 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
                 }
                 break;
             }
-            case 6:  //TCP Protocol
+            case 6: // TCP Protocol
             {
                 if (IS_ALL || tcp)
                 {
@@ -307,7 +216,7 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
                 }
                 break;
             }
-            case 17: //UDP Protocol
+            case 17: // UDP Protocol
             {
                 if (IS_ALL || udp)
                 {
@@ -326,7 +235,7 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
                 }
                 break;
             }
-            default:
+            default: // Other Protocols
             {
                 if (IS_ALL)
                 {
@@ -346,7 +255,7 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
     }
 }
 
-bool arg_parse(int argc, char* argv[], char **interface)
+bool arg_parse(int argc, char* argv[])
 {
     const struct option longopts[] =
     {
@@ -376,14 +285,19 @@ bool arg_parse(int argc, char* argv[], char **interface)
                 {
                     if (strcmp(argv[i], "-i")  == 0|| strcmp(argv[i], "--interface") == 0)
                         if (argv[i+1][0] != '-')
+                        {
                             value = argv[i+1];
+                        }
                 }
                 if (value)
                 {
-                    *interface = (char *)malloc(strlen(value) + 1);
-                    if (!*interface) return false;
+                    interface = (char *)malloc(strlen(value) + 1);
+                    if (!interface) 
+                    {
+                        return false;
+                    }
 
-                    strcpy(*interface, value);
+                    strcpy(interface, value);
                 }
                 break;
             }
@@ -439,51 +353,3 @@ bool arg_parse(int argc, char* argv[], char **interface)
     } // end while
     return is_i;
 }
-
-void print_data (const u_char * data , int size)
-{
-    int i,j;
-    for(i = 0; i < size; i++)
-    {
-        if(i != 0 && i % 16 == 0) //if hex part is done
-        {
-            cout <<"         ";
-            for(j = i - 16; j < i; j++)
-            {
-                if (isprint(data[j]) != 0)
-                    cout << (unsigned char)data[j];
-                else 
-                    cout << "."; // else dot
-            }
-            cout << endl;
-        }
-        
-        if(i % 16 == 0)
-        {
-            print_byte_offset((i == 0)? true : false);
-            cout << "   ";
-        }
-
-        printf(" %02x",(unsigned int)data[i]);
-
-        if(i == size - 1) //print the last line
-        {
-            for(j = 0; j < 15 - i % 16; j++) 
-            {
-                cout << "   "; //extra spaces
-            }
-
-            cout << "         ";
-
-            for(j = i - i % 16; j <= i; j++)
-            {
-                if (isprint(data[j]) != 0)
-                    cout << (unsigned char)data[j];
-                else 
-                    cout << "."; // else dot
-            }
-            cout << endl;
-        }
-    }
-}
-
