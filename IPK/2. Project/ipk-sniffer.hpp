@@ -1,7 +1,7 @@
 /**
  * @file ipk-sniffer.hpp
  * @author Peter Rucek, xrucek00
- * @date 16.4.2021
+ * @date 18.4.2021
  * Header for packet sniffer
  */
 
@@ -30,7 +30,7 @@
 #define OK 0        // exit code that evrything went OK
 #define PCAP_ERR 1  // exit code that something from PCAP library failed
 #define ARG_ERR  2  // exit code that arguments were wrong
- 
+
 #define IS_ALL ((tcp || udp || arp || icmp)? false : true)
 
 /**
