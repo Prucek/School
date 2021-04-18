@@ -1,0 +1,34 @@
+IPK Projekt 2
+Varianta ZETA: Sniffer paketů
+
+Autor: Peter Rúček, xrucek00
+
+Program zachytáva pakety zo sieťovej komunikácie. Program sa preloží pomocou príkazu make.
+Program by mal byť spúšťaný s rootovskými právami. Program pracuje aj s IPv4 aj IPv6 paketmi.
+
+Príklad spustenia:
+    sudo ./ipk-sniffer -i lo -n 5 --icmp
+    sudo ./ipk-sniffer -i enp0s3
+    sudo ./ipk-sniffer -i enp0s3 -t -u -n 10 -p 80
+    sudo ./ipk-sniffer -i lo -n 5 --tcp --udp
+
+Zoznam odovzdaných súborov:
+    ipk-sniffer.cpp
+    ipk-sniffer.hpp
+    print.cpp
+    print.hpp
+    Makefile
+    manual.pdf
+    README
+
+POZOR : Dovolil som si pred každý paket napísať akého je typu pred tým ako vypíšem zvyšok údoajov.
+        Slúžilo mi to ako kontrola pri testovaní.
+    Príklady: 
+        IPv4 TCP
+        2021-4-18....
+
+        IPv6 ICMP
+        2021-4-18....
+
+        ARP
+        2021-4-16....
