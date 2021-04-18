@@ -9,7 +9,7 @@
 
 // Global variables
 unsigned port = 0;
-unsigned num  = 0;
+unsigned num  = 1; // on default capture single packet
 char *interface = nullptr;
 bool tcp = false;
 bool udp = false;
@@ -24,12 +24,7 @@ int main(int argc, char * argv[])
         return ARG_ERR;
     }
 
-    if (num == 0) 
-    {
-        num = 1; // if num not set print just 1 packet
-    }
-
-    pcap_if_t* devices = nullptr;
+    pcap_if_t* devices;
     char errbuf[PCAP_ERRBUF_SIZE]; // for printing errors
     if(pcap_findalldevs(&devices, errbuf) != 0) 
     {
@@ -37,7 +32,7 @@ int main(int argc, char * argv[])
         return PCAP_ERR;
     }
 
-    // Loop thru available devices/interafces
+    // Loop thru available devices/interfaces
     pcap_if_t* device = nullptr;
     for (pcap_if_t* curr_device = devices ; curr_device; curr_device = curr_device->next)
     {
@@ -101,18 +96,10 @@ int main(int argc, char * argv[])
         }
     }
 
-
-    // struct pcap_pkthdr header;	// The header that pcap gives us
-
-	// const u_char *packet;		// The actual packet
-    // const struct sniff_ethernet *ethernet; // The ethernet header
-    // TODO IPv6 MATBE ?
-    // packet = pcap_next(pcap, &header);
-
     // Capture num packets
     while(num != 0)
     {
-        if (pcap_loop(pcap, 1, process_packet, nullptr) == PCAP_ERROR)
+        if (pcap_loop(pcap, 1, process_packet, nullptr)== PCAP_ERROR)
         {
             pcap_close(pcap);
             cerr << "ERROR: pcap failed: " << pcap_geterr(pcap) << endl;
@@ -145,7 +132,6 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
             for(int i = 0; i < add_size; i++)
                 address[i] = p[i];
 
-            cout << endl;
             cout << "ARP" << endl;
             print_time_rfc3339();
             printf ("%s > ",inet_ntoa(*((struct in_addr*)address))); // Print as IP adress
@@ -158,41 +144,64 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
             cout << ", length "<< size << " bytes"<< endl;
             cout << endl;
             print_data(buffer, size);
+            cout << endl;
 
             num--;
             delete[] address; 
         }
         return;
     }
-     // TODO ETHERTYPE_IPV6		0x86dd	
-    if (ntohs(eth->ether_type) == ETHERTYPE_IP)
+
+    if (ntohs(eth->ether_type) == ETHERTYPE_IP || ntohs(eth->ether_type) == ETHERTYPE_IPV6)
     {
-        struct iphdr *iph = (struct iphdr*)(buffer + sizeof(struct ethhdr));
+        unsigned char protocol;
+        u_short header_len;
+        struct ip* iph = (struct ip*)(buffer + sizeof(struct ethhdr));
+        struct ip6_hdr* ip6h = (struct ip6_hdr*)(buffer + sizeof(struct ethhdr));
 
-        // The IHL field contains the size of the IPv4 header, 
-        // it has 4 bits that specify the number of 32-bit words in the header (5 min - 15 max)
-        u_short ip_header_len = (iph->ihl) * 4;
-
-        struct sockaddr_in source,dest;
-        memset(&source, 0, sizeof(source));
-        source.sin_addr.s_addr = iph->saddr; // source address
-
-        memset(&dest, 0, sizeof(dest));
-        dest.sin_addr.s_addr = iph->daddr; // destination address
-
-        switch (iph->protocol)
+        if (ntohs(eth->ether_type) == ETHERTYPE_IP)
         {
-            case 1: // ICMP Protocol
+            // The IHL field contains the size of the IPv4 header, 
+            // it has 4 bits that specify the number of 32-bit words in the header (5 min - 15 max)
+            header_len = iph->ip_hl * 4;
+            protocol = iph->ip_p;
+        }
+        else
+        {
+            protocol = ip6h->ip6_ctlun.ip6_un1.ip6_un1_nxt;
+            header_len = 40; // Fixed IPv6 header length
+        }
+
+        // Transfrom data to IP addresses
+        char source_ip[256];
+        char destination_ip[256];
+        if (ntohs(eth->ether_type) == ETHERTYPE_IP)
+        {
+            inet_ntop(AF_INET, &(iph->ip_src), source_ip, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &(iph->ip_dst), destination_ip, INET_ADDRSTRLEN);
+            cout << "IPv4 ";
+        }
+        else
+        {
+            inet_ntop(AF_INET6, &(ip6h->ip6_src), source_ip, INET6_ADDRSTRLEN);
+            inet_ntop(AF_INET6, &(ip6h->ip6_dst), destination_ip, INET6_ADDRSTRLEN);
+            cout << "IPv6 ";
+        }
+
+        switch (protocol)
+        {
+            case 1:   // ICMP   Protocol
+            case 58:  // ICMPv6 Protocol
             {
                 if (IS_ALL || icmp)
                 {
-                    cout << endl;
                     cout << "ICMP" << endl;
                     print_time_rfc3339();
-                    cout << inet_ntoa(source.sin_addr) << " > " << inet_ntoa(dest.sin_addr);
+                    cout << source_ip << " > " << destination_ip;
                     cout << ", length "<< size << " bytes"<< endl;
                     cout << endl;
                     print_data(buffer, size);
+                    cout << endl;
                     num--;
                 }
                 break;
@@ -201,17 +210,17 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
             {
                 if (IS_ALL || tcp)
                 {
-                    const struct tcphdr* tcp_header = (struct tcphdr*)(buffer + sizeof(struct ethhdr) + ip_header_len);
-                    cout << endl;
+                    const struct tcphdr* tcp_header = (struct tcphdr*)(buffer + sizeof(struct ethhdr) + header_len);
                     cout << "TCP" << endl;
                     print_time_rfc3339();
-                    cout << inet_ntoa(source.sin_addr);
+                    cout << source_ip;
                     cout << " : " << ntohs(tcp_header->source);
-                    cout << " > " << inet_ntoa(dest.sin_addr);
+                    cout << " > " << destination_ip;
                     cout << " : " << ntohs(tcp_header->dest);
                     cout << ", length "<< size << " bytes"<< endl;
                     cout << endl;
                     print_data(buffer, size);
+                    cout << endl;
                     num--;
                 }
                 break;
@@ -220,17 +229,17 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
             {
                 if (IS_ALL || udp)
                 {
-                    const struct udphdr* udp_header = (struct udphdr*)(buffer + sizeof(struct ethhdr) + ip_header_len);
-                    cout << endl;
+                    const struct udphdr* udp_header = (struct udphdr*)(buffer + sizeof(struct ethhdr) + header_len);
                     cout << "UDP" << endl;
                     print_time_rfc3339();
-                    cout << inet_ntoa(source.sin_addr);
+                    cout << source_ip;
                     cout << " : " << ntohs(udp_header->source);
-                    cout << " > " << inet_ntoa(dest.sin_addr);
+                    cout << " > " << destination_ip;
                     cout << " : " << ntohs(udp_header->dest);
                     cout << ", length "<< size << " bytes"<< endl;
                     cout << endl;
                     print_data(buffer, size);
+                    cout << endl;
                     num--;
                 }
                 break;
@@ -239,14 +248,14 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
             {
                 if (IS_ALL)
                 {
-                    cout << endl;
                     cout << "ELSE" << endl;
                     print_time_rfc3339();
-                    cout << inet_ntoa(source.sin_addr);
-                    cout <<  " > " << inet_ntoa(dest.sin_addr);
+                    cout << source_ip;
+                    cout <<  " > " << destination_ip;
                     cout << ", length "<< size << " bytes"<< endl;
                     cout << endl;
                     print_data(buffer, size);
+                    cout << endl;
                     num--;
                 }
                 break;

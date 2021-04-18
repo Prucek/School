@@ -12,13 +12,14 @@
 #include <getopt.h>
 #include <cstring>
 #include <pcap.h>
-#include<arpa/inet.h>
-#include<net/ethernet.h>
-#include<netinet/ip_icmp.h>
-#include<netinet/udp.h>
-#include<netinet/tcp.h>
-#include<netinet/ip.h>
-#include<linux/if_arp.h>
+#include <arpa/inet.h>
+#include <net/ethernet.h>
+#include <netinet/ip_icmp.h>
+#include <netinet/udp.h>
+#include <netinet/tcp.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
+#include <linux/if_arp.h>
 
 #include "print.hpp"
 
