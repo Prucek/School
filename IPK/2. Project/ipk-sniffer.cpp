@@ -78,7 +78,7 @@ int main(int argc, char * argv[])
     pcap_freealldevs(devices);
 
     // Filter port
-    if (port != 0 && (IS_ALL || tcp || udp) ) // Port filtering only if upot tcp ( would not work on arp and icmp)
+    if (port != 0 && (IS_ALL || tcp || udp) ) // Port filtering only if udp or tcp ( would not work on arp and icmp)
     {
         std::string s = "port " + std::to_string(port);
         struct bpf_program pgm;
@@ -260,9 +260,9 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
                 }
                 break;
             }
-        }
-    }
-}
+        } // end switch
+    } // end ip
+} //end process_packet
 
 bool arg_parse(int argc, char* argv[])
 {
