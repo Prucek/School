@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orelega+One&family=Roboto:wght@300&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" rel="stylesheet"> 
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+    <title>Me!</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+  
+    <nav class="topnav" id="myTopnav">
+      <div class="content">
+        <div id="nav-logo">
+          <div><a href="index.html">This is me!</a></div>
+        </div>
+        <div id="navID" class="navbar">
+          <a href="#about" onclick="myFunction()">About</a>
+          <a href="#education" onclick="myFunction()">Education</a>
+          <a href="#hobby" onclick="myFunction()">Interests</a>
+          <a href="#skills" onclick="myFunction()">Skills & Experience</a>
+          <a href="#contact" onclick="myFunction()">Contact</a>
+        </div>
+        <a id="menu" href="javascript:void(0);" style="font-size:17.5px;" class="icon"  onclick="myFunction()">&#9776;</a> 
+      </div>
+    </nav>
+
+    <div id="wrap"></div>
+
+    <section id="about">
+      <div class="content">
+        <img id="photo" src="img/myPhoto.jpeg" alt="My Photo">
+        <h1>Peter </h1><h1 id="surname">Rúček</h1><br>
+        <h2 id="school">FIT BUT </h2><h2>student</h2>
+        <br id="break">
+        <h2 id="birth">23. august 2000</h2>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla eu mauris facilisis, eleifend arcu vitae, ultricies purus. Phasellus in magna sed ex viverra tincidunt nec eget libero. Donec faucibus metus erat, sed aliquet odio aliquam porttitor. Pellentesque id augue vitae ipsum pharetra dignissim. Curabitur sit amet sapien vitae neque congue placerat. Aenean rutrum lobortis velit sit amet dapibus. Etiam dapibus eleifend pellentesque.</p>
+        <div class="social-icons">
+          <a class="social-icon" href="https://www.instagram.com/peporucek/"><i class="fab fa-instagram"></i></a>
+          <a class="social-icon" href="https://github.com/Prucek"><i class="fab fa-github"></i></a>
+          <a class="social-icon" href="https://twitter.com/PeterRucek"><i class="fab fa-twitter"></i></a>
+          <a class="social-icon" href="https://www.facebook.com/pepo.rucek"><i class="fab fa-facebook-f"></i></a>
+        </div>
+      </div>   
+    </section>
+
+    <section id="education">
+      <div class="content">
+        <h1>Education</h1>
+        <img class="rows" id="fit" src="img/FIT.png" alt="FIT Photo">
+        <div class="rows" >
+          <h2>University</h2>
+          <p>23.9.2019 – until now, student of BUT FIT</p>
+          <h2>High school</h2>
+          <p>2010-2019, Gymnázium Púchov</p>
+          <h2>Elementary School</h2> 
+          <p>2007-2010, Základná škola Beluša </p><p>2006-2007, Grundschule München</p>
+        </div>
+        <div class="rows" id="languages">
+          <h2>Languages</h2>
+          <ul>
+            <li>German, level C1</li>
+            <li>English, level B2</li>
+            <li>Russian, level B1</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="hobby">
+      <div class="content">
+        <h1>Interests</h1>
+        <div class="container">
+          <div class="dimmed">
+            <img class="photos" src="img/chess.jpg" alt="Chess Photo">
+          </div>
+          <div class="centered">Chess</div>
+        </div>
+        <div class="container">
+          <div class="dimmed">
+            <img class="photos" src="img/f1.jpg" alt="F1 Photo">
+          </div>
+          <div class="centered">F1</div>
+        </div>
+        <div class="container">
+          <div class="dimmed">
+            <img class="photos" src="img/football.jpg" alt="Football Photo">
+          </div>
+          <div class="centered">Football</div>
+        </div>
+        <div class="container">
+          <div class="dimmed">
+            <img class="photos" src="img/coding.jpg" alt="Coding Photo">
+          </div>
+          <div class="centered">Coding</div>
+        </div>
+        <div class="container">
+          <div class="dimmed">
+            <img class="photos" src="img/guitar.jpg" alt="Guitar Photo">
+          </div>
+          <div class="centered">Guitar</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="skills">
+      <div class="content">
+        <section class="subsection" id="margin">
+          <h1>Skills</h1>
+            <div class="touples">
+              <a class="skill-icon"><i class="fab fa-linux"></i></a>
+              <a class="skill-icon"><i class="fab fa-windows"></i></a> 
+            </div>
+            <div class="touples">
+              <a class="skill-icon"><i class="fab fa-html5"></i></a>
+              <a class="skill-icon"><i class="fab fa-css3-alt"></i></a>
+            </div>
+            <div class="touples">
+              <a class="skill-icon"><i class="fab fa-git"></i></a>
+              <a class="skill-icon"><i class="fab fa-python"></i></a>
+            </div>
+            <div class="touples">
+              <img class="skill-icon" src="https://img.icons8.com/ios-filled/50/000000/c-plus-plus-logo.png" alt="c++ Photo"/>
+              <img class="skill-icon" src="https://img.icons8.com/ios-filled/50/000000/c-sharp-logo.png" alt="c# Photo"/>
+            </div>
+          <p id="description">Vel facilisis volutpat est velit egestas dui id ornare. Neque convallis a cras semper auctor neque vitae tempus quam. Auctor neque vitae tempus quam pellentesque nec nam aliquam. Erat nam at lectus urna duis convallis convallis. Cursus turpis massa tincidunt dui ut ornare. </p>
+          <div class="vl"></div>
+        </section>
+        <section class="subsection">
+          <h1>Experience</h1>
+          <a class="work-icon"><i class="fas fa-briefcase"></i></a>
+          <p>Proin sagittis nisl rhoncus mattis rhoncus urna neque viverra. Consectetur adipiscing elit duis tristique sollicitudin. Ut ornare lectus sit amet est placerat in egestas erat. Varius vel pharetra vel turpis nunc eget lorem. Ac placerat vestibulum lectus mauris ultrices eros in cursus. In mollis nunc sed id.</p>
+          <a class="work-icon"><i class="fas fa-user-friends"></i></a>
+          <p>Morbi fermentum diam orci. Integer tempus mauris sem, non congue nibh ornare non. Vestibulum facilisis tempor leo a tincidunt. Vestibulum posuere placerat aliquam. Sed feugiat mi ut velit porttitor, quis rutrum sapien blandit. Cras non arcu ornare, vehicula diam a, congue nisl. Curabitur tempor pharetra nibh.</p>
+          <a class="work-icon"><i class="fas fa-tools"></i></a>
+          <p>Curabitur ut quam et justo aliquam molestie eu eu massa. Donec sit amet lectus vehicula, bibendum ligula quis, ornare nulla. Suspendisse id urna diam. Duis mauris tellus, finibus sit amet imperdiet in, dapibus ac mi. Nunc sed lacus quis risus dapibus faucibus a eget mi. Cras auctor velit eu mollis lacinia.</p>
+        </section>
+      </div>
+    </section>
+
+    <footer id="contact">
+      <div class="content">
+        <div class="links">
+          <h2>Links</h2>
+          <ul>
+            <li><a href="#about">About</a></li>
+            <li><a href="#education">Education</a></li>
+            <li><a href="#hobby">Interests</a></li>
+            <li><a href="#skills">Skills & Experience</a></li>
+          </ul>
+        </div>
+        <div class="links">
+          <h2>Contact me</h2>
+          <dl>
+              <dt>Personal</dt>
+              <dd><a href="mailto:peter.rucek@gmail.com">peter.rucek@gmail.com</a></dd>
+              <dt>School</dt>
+              <dd><a href="mailto:xrucek00@stud.fit.vutbr.cz">xrucek00@stud.fit.vutbr.cz</a></dd>
+          </dl>
+        </div>
+      </div>
+    </footer>
+      
+    <script>
+      function myFunction() {
+        var x = document.getElementById("myTopnav");
+        if (x.className === "topnav") {
+          x.className += " responsive";
+        } else {
+          x.className = "topnav";
+        }
+      }
+    </script>
+
+  </body>
+</html>

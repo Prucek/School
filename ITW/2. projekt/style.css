@@ -1,0 +1,490 @@
+/**** GENERAL *****/
+body{
+    margin: 0;
+    padding: 0;
+    background-color: #f2f2f2 ;
+}
+* {
+    box-sizing: border-box;
+}
+html{
+    scroll-behavior: smooth;
+}
+.content {
+    max-width: 1200px;
+    font-family: 'Roboto';   
+    margin: auto; 
+    padding: 0px 30px;
+    text-align: center;
+}
+h1 {
+    font-size: 35px;
+    font-family: 'Orelega One';
+    padding: 0;
+    margin: 0;
+}
+h2 {
+    font-size: 25px;
+    padding: 0;
+    margin: 0;
+}
+p {
+    font-size: 18px;
+    font-family: 'Roboto';
+    color: black;
+    font-weight: 600;
+    line-height: 1.5;
+    text-align: justify;
+    text-align: center;
+}
+section{
+    scroll-margin-top: 50px;
+    height: 50%;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+}
+/******************/
+/* #CE1EFA
+#610DFF
+#2C3EE6
+#0A8EFF
+#0AF4FA */
+
+/*** NAVIGATION ***/
+nav .content{
+    padding: 0;
+}
+nav {
+    background-color: #0A8EFF;
+    position: fixed;
+    top: 0; 
+    width: 100%;
+    font-family: 'Orelega One';
+    font-size: 20px;
+    z-index: 2;
+}
+.navbar , #menu{
+    float: right;
+}
+.navbar a , #menu{
+    display: inline-block;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+#menu {
+    display: none;
+    position: absolute;
+    right: 0px;
+    top: 0px;
+}
+#nav-logo a{
+    float: left;
+    display: block;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 12px 40px;
+    text-decoration: none;
+    font-family: 'Orelega One';
+    font-size: 25px;
+}
+nav div a:hover {
+    background: #2C3EE6;
+    color: #f2f2f2;
+}
+#nav-logo a:hover {
+    background: #CE1EFA;
+    color: black;
+}
+.topnav a.icon {
+    display: none;
+}
+#wrap{
+    padding-bottom: 80px;
+    padding-top: 80px;
+    background-color: #e9e3e3;
+}
+/******************/
+/***** ABOUT *****/
+#about{
+    padding-bottom: 80px;
+    scroll-margin-top: 80px;
+    background-color: #e9e3e3;
+}
+#about img{
+    width: 300px;
+    height: auto;
+    border-radius: 30%;
+    float: left;
+    margin-right: 30px;
+    margin-bottom: 20px;
+}
+#about h1,h2 {
+    display: inline;
+}
+#about p{
+    margin-bottom: 50px;
+}
+#surname {
+    color: #2C3EE6;
+}
+#school {
+    color: #0A8EFF;
+}
+#birth{
+    color:#CE1EFA;
+    padding-left: 20px;
+}
+.social-icon{
+    margin: 2%;
+}
+.social-icon i:hover{
+    background-color: #2C3EE6;
+    opacity: 1;
+}
+.social-icon i{
+    opacity: 0.8;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    height: 3.5rem;
+    width: 3.5rem;
+    background-color: #495057;
+    color: #f2f2f2;
+    font-size: 2.5em;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 30%;
+}
+#break {
+    display: none;
+}
+/******************/
+/*** EDUCATION ****/
+#education{
+    padding-bottom: 80px;
+}
+#education h1{
+    color: #2C3EE6;
+    margin-bottom: 40px;
+    text-align: left;
+    padding: 30px 0px;
+}
+#education h2{
+    color: #0A8EFF;
+}
+.rows{
+    float: left;
+}
+#fit{
+    margin-top: 20px;
+    margin-right: 80px;
+}
+#languages{
+    /* margin-top: 40px; */
+    color: #CE1EFA;
+    margin-left: 80px;
+}
+#languages li {
+    list-style: none;
+    font-family: 'Roboto';
+    font-size: 20px;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 20px;  
+} 
+#languages li:before {
+    content: "\f00c";
+    font-family: FontAwesome;
+    display: inline-block;
+    margin-left: -2em;
+    width: 2em;
+}
+/******************/
+/**** INTERESTS ***/
+#hobby h1{
+    color: #2C3EE6;
+    text-align: left;
+    max-width: 1200px;
+    margin: auto;
+    margin-bottom: 40px;
+    padding: 30px 30px;
+}
+
+#hobby .content {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    background-color: #e9e3e3;
+}
+#hobby .container{
+    width: 100%;
+    position: relative;
+    text-align: center;
+    font-size: 45px;
+    font-family: 'Orelega One';
+    overflow: hidden;
+}
+.dimmed {
+    background-color: #e9e3e3;
+    border-top: #bdbdbd solid  0.1px;
+    background-size: contain;
+}
+#hobby .photos:hover{
+    opacity: 1;
+    transform: scale(1.1);
+}
+.photos{
+    height: 300px;
+    display: block;
+    object-fit: cover;
+    margin-left: auto;
+    margin-right: auto;
+    width: 800px;
+    opacity: 0.6;
+    transition: transform 0.5s ease;
+}
+.centered {
+    color: #2C3EE6;
+    opacity: 1;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+/******************/
+/***** SKILLS *****/
+.subsection{
+    float: left;
+    display: block;
+    width: 50%;
+    margin: auto;
+    position: relative;
+}
+#margin {
+    padding-right: 8%;
+}
+#skills h1{
+    color: #2C3EE6;
+    margin-bottom: 40px;
+    text-align: left;
+    padding: 30px 0px;
+}
+.skill-icon i:hover, img.skill-icon:hover{
+    background-color: #CE1EFA;
+}
+.skill-icon i, img.skill-icon {
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    height: 3.5rem;
+    width: 3.5rem;
+    background-color: #0A8EFF;
+    color: black;
+    font-size: 2.5em;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 30%;
+    margin-right: 3%;
+}
+.touples{
+    display: block;
+    width: 50%;
+    margin: auto;
+    margin-bottom: 3%;
+}
+#description {
+    padding-top: 10%;
+    clear: both;
+    display: block;
+}
+.vl {
+    border-left: #bdbdbd solid  0.1px;
+    height: 90%;
+    position: absolute;
+    top: 5%;
+    right: 0;
+    padding-right: 10%;
+    padding-top: 10%;
+}
+.work-icon:hover{
+    background-color: #0A8EFF;
+}
+.work-icon{
+    float: left;
+    display: block;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    height: 3.5rem;
+    width: 3.5rem;
+    background-color: #CE1EFA;
+    color: black;
+    font-size: 2.5em;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 30%;
+    margin-right: 3%;
+    margin-bottom: 3%;
+}
+#skills p{
+    margin-bottom: 5%;
+}
+/******************/
+/**** CONTACT *****/
+#contact{
+    background-color: #bdbdbd;
+    padding: 3% 0;
+    margin: 0;
+}
+.links{
+    width: 40%;
+    display: inline-grid;
+    text-align: left;
+}
+#contact h2{
+    color: #CE1EFA;
+    font-size: 34px;
+    text-align: left;
+}
+#contact a{
+    text-decoration: none;
+    text-align: left;
+    color: #0A8EFF;
+}
+#contact ul{
+    color: #0A8EFF;
+    text-decoration: none;
+    text-align: left;
+}
+#contact li{
+    list-style: none;
+    font-family: 'Roboto';
+    font-size: 20px;
+    font-weight: 600;
+    margin-top: 20px;  
+} 
+#contact li a:before {
+    content: "\f0c1";
+    font-family: FontAwesome;
+    display: inline-block;
+    margin-left: -2em;
+    width: 2em;
+}
+#contact li:hover, #contact li a:hover{
+    color: #2C3EE6;
+}
+#contact dt {
+    float: left;
+    clear: left;
+    width: 10%;
+    text-align: right;
+    font-weight: bold;
+    color: #2C3EE6;
+    z-index: -1;
+    font-size: 20px;
+}
+#contact dt::after {
+    content: ":";
+}
+#contact dd{
+    text-align: center;
+    margin: 0 0 0 12%;
+    padding: 0 0 1% 0;
+    font-size: 20px;
+}
+#contact dd a:hover, #contact dd:hover{
+    color: #CE1EFA;
+}
+/******************/
+/*** WHEN MOBILE **/
+@media screen and (max-width: 992px) {
+    .topnav a {
+        display: none;
+    }
+    .topnav a.icon {
+        float: left;
+        display: block;
+    }
+    .topnav.responsive .icon {
+        position: absolute;
+        right: 0;
+        top: 0;
+    }
+    .topnav.responsive a {
+        float: none;
+        display: block;
+        text-align: left;
+    }
+    .topnav.responsive {
+        display: block;
+        width: 100%;
+        text-align: left;
+    }
+    .topnav.responsive #nav-logo{
+        display: none;
+    }
+    #about img {
+        width: 150px;
+        height: auto;
+    }
+    .navbar {
+        float: none;
+    }
+    #menu {
+        display: inline-block;
+    }
+    #birth {
+        padding-left: 0;
+        padding-top: 10px;
+    }
+    #break {
+        display: inline;
+    }
+    .vl{
+        border-left: none;
+        border-bottom: #bdbdbd solid  0.1px;
+        width: 100%;
+        position: sticky;
+        padding: 0;
+        margin-top: 5%;
+    }
+    .subsection{
+        width: 100%;
+    }
+    #skills h1{
+        text-align: center;
+    }
+    .links{
+        width: 100%;
+        display: block;
+        text-align: center;
+    }
+    #contact dt{
+        float: none;
+        clear: both;
+    }
+}
+
+@media screen and (max-width: 1200px) {
+    #education h1{
+        text-align: center;
+    }
+    #fit {
+        display: none;
+    }
+    .rows{
+        clear: both;
+        float: none;
+    }
+    #languages{
+        margin-left: 0;
+    }
+    #hobby h1{
+        text-align: center;
+    }
+}
+/******************/
