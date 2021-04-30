@@ -8,21 +8,57 @@
 #include <student/gpu.hpp>
 
 
+uint32_t computeVertexID(VertexArray const&vao,uint32_t shaderInvocation){
+
+  if(!vao.indexBuffer)return shaderInvocation;
+
+  else if(vao.indexType == IndexType::UINT32){
+    uint32_t*ind = (uint32_t*)vao.indexBuffer;
+    return ind[shaderInvocation];
+  }
+  else if(vao.indexType == IndexType::UINT16){
+    uint16_t*ind = (uint16_t*)vao.indexBuffer;
+    return ind[shaderInvocation];
+  }
+  else if(vao.indexType == IndexType::UINT8 ){
+    uint8_t*ind = (uint8_t*)vao.indexBuffer;
+    return ind[shaderInvocation];
+  }
+  else return 0;
+}
 
 
 //! [drawTrianglesImpl]
 void drawTrianglesImpl(GPUContext &ctx,uint32_t nofVertices){
-  (void)ctx;
-  (void)nofVertices;
-  /// \todo Tato funkce vykreslí trojúhelníky podle daného nastavení.<br>
-  /// ctx obsahuje aktuální stav grafické karty.
-  /// Parametr "nofVertices" obsahuje počet vrcholů, který by se měl vykreslit (3 pro jeden trojúhelník).<br>
-  /// Bližší informace jsou uvedeny na hlavní stránce dokumentace.
+
   for(uint32_t v = 0; v < nofVertices; v++)
   {
     InVertex inVertex;
     OutVertex outVertex;
-    inVertex.gl_VertexID = v;
+    inVertex.gl_VertexID = computeVertexID(ctx.vao,v);
+
+    for(uint32_t i = 0; i < maxAttributes; i++){
+      auto const &attributes = ctx.vao.vertexAttrib[i];
+      if(!attributes.bufferData)continue;
+      if(attributes.type == AttributeType::FLOAT){
+        inVertex.attributes[i].v1 = *(float *)(((uint8_t*)attributes.bufferData)
+        + attributes.stride * inVertex.gl_VertexID + attributes.offset);
+      }
+      if(attributes.type == AttributeType::VEC2){
+        inVertex.attributes[i].v2 = *(glm::vec2*)(((uint8_t*)attributes.bufferData)
+        + attributes.stride * inVertex.gl_VertexID + attributes.offset);
+      }
+      if(attributes.type == AttributeType::VEC3){
+        inVertex.attributes[i].v3 = *(glm::vec3*)(((uint8_t*)attributes.bufferData)
+        + attributes.stride * inVertex.gl_VertexID + attributes.offset);
+      }
+      if(attributes.type == AttributeType::VEC4){
+        inVertex.attributes[i].v4 = *(glm::vec4*)(((uint8_t*)attributes.bufferData)
+        + attributes.stride * inVertex.gl_VertexID + attributes.offset);
+      }
+      
+    }
+    
     ctx.prg.vertexShader(outVertex,inVertex,ctx.prg.uniforms);
   }
 }
