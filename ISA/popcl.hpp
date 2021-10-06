@@ -21,18 +21,36 @@
 // #include <netinet/ip6.h>
 // #include <linux/if_arp.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 using std::cout;
 using std::cerr;
 using std::endl;
 
-// #define no_argument 0
-// #define required_argument 1
 
-// #define OK 0        // exit code that evrything went OK
+#define OK 0        // exit code that evrything went OK
 // #define PCAP_ERR 1  // exit code that something from PCAP library failed
-// #define ARG_ERR  2  // exit code that arguments were wrong
+#define ARG_ERR  2  // exit code that arguments were wrong
+
+
+struct PopOptions
+{
+    char *authorization_file;
+    char *output_direcory;
+    int port = 110; //default POP3
+    char *server;
+    bool delete_messages = false;
+    bool only_new = false;
+    bool pop3s = false; // -T
+    bool stls = false;  // -S
+    char *tls_certificate = NULL;
+    char *tls_directory = NULL;
+};
 
 bool find_server(char **server, char *argv[], int argc);
-bool arg_parse(int argc, char* argv[], char **auth_file, char **out_dir, int *port);
+bool arg_parse(int argc, char* argv[], PopOptions *options);
+bool check_dir(char *string);
+bool check_file(char *string);
 
 #endif
