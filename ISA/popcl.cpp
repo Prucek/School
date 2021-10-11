@@ -9,9 +9,10 @@
 
 int main(int argc, char *argv[])
 {
-    PopOptions options;
-    if (!find_server(&(options.server), argv, argc) ||
-        !arg_parse(argc, argv, &options))
+    cout <<"bstrd";
+    PopOptions *options = new PopOptions();
+    if (!find_server(&(options->server), argv, argc) ||
+        !arg_parse(argc, argv, options))
     {
         cout << "Usage:" << endl;
         cout << " popcl <server> [-p <port>] [-T|-S [-c <certfile>] [-C <certaddr>]]"
@@ -19,7 +20,171 @@ int main(int argc, char *argv[])
         return ARG_ERR;
     }
 
+    
+
+    /* Initializing OpenSSL */
+    SSL_load_error_strings();
+    ERR_load_BIO_strings();
+    OpenSSL_add_all_algorithms();
+    
+    // creating conection
+    cout <<"bstrd";
+    BIO* bio = connection_unsecure(options);
+    
+    if (bio == NULL)
+    {
+        return BIO_ERR;
+    }
+    cout << "connected"<< endl;
+    string msg = read_message(bio);
+    cout << msg;
+
+    // authorization_file reading
+    AuthorizationPair *pair = read_authfile(options->authorization_file);
+    if (pair->username.empty() || pair->password.empty())
+    {
+        cerr << "ERROR: Wrong authentization file" << endl;
+        delete pair;
+        return AUT_ERR;
+    }
+
+    authenticate(bio,pair);
+
+    BIO_reset(bio);
+    BIO_free_all(bio);
+    delete pair; 
+    delete options;
     return OK;
+}
+
+bool send_message(BIO *bio, string str)
+{
+    char buf[1024];
+    sprintf(buf, "%s", str.c_str());
+    bool loop = true;
+    
+    while (loop)
+    {
+        int ret_val = BIO_write(bio, buf, (int)str.size());
+        if(ret_val <= 0)
+        {
+            if (!BIO_should_retry(bio)) {
+                cerr << "ERROR: Could not send request" << endl;
+                return false;
+            }
+        }
+        else
+        {
+            //ok
+            loop = false;
+        }
+    }
+    return true;
+}
+string read_message(BIO *bio)
+{
+    char buf[1024] = {0};
+    bool loop = true;
+    
+    while (loop)
+    {
+        int ret_val = BIO_read(bio, buf, 1024);
+        if(ret_val <= 0)
+        {
+            if(! BIO_should_retry(bio))
+            {
+                cerr << "ERROR: Could not send request" << endl;
+                return {};
+            }
+        }
+        else
+        {
+            //ok
+            loop = false;
+        }
+    }
+    string str(buf);
+    return str;
+}
+bool authenticate(BIO *bio, AuthorizationPair* pair)
+{
+    bool ret_val = send_message(bio,"USER " + pair->username + "\r\n");
+    if (ret_val == false)
+        return false;
+    string msg = read_message(bio);
+    if (msg.empty())
+    {
+        return false;
+    }
+    cout<< msg;
+    ret_val = send_message(bio,"PASS " + pair->password + "\r\n");
+    if (ret_val == false)
+        return false;
+    msg = read_message(bio);
+    if (msg.empty())
+    {
+        return false;
+    }
+    cout<< msg;
+    return true;
+}
+
+AuthorizationPair* read_authfile(char *file_name)
+{
+    AuthorizationPair* pair = new AuthorizationPair();
+    string myText,buf;
+    ifstream file(file_name);
+
+    while (getline (file, myText)) 
+    {
+        buf += myText;
+        buf += ' ';
+    }
+    string space_delimiter = " ";
+    vector<string> words{};
+
+    size_t pos = 0;
+    while ((pos = buf.find(space_delimiter)) != string::npos)
+    {
+        words.push_back(buf.substr(0, pos));
+        buf.erase(0, pos + space_delimiter.length());
+    }
+    if ((words[0] == "username") && (words[1] == "=") && (words[3] == "password") && (words[4] == "="))
+    {
+        pair->username = words[2];
+        pair->password = words[5];
+    }
+
+    file.close();
+    return pair;
+}
+
+BIO* connection_unsecure(PopOptions *options)
+{
+    char str[16]; // TODO enough bc max port 65535
+    sprintf(str, "%d", options->port);
+
+    char hostname[300]; 
+    strcpy(hostname, options->server);
+    strcat(hostname, ":");
+    strcat(hostname,str);
+
+    cout<< "aaaa";
+    BIO *bio = BIO_new_connect(hostname);
+    cout << "bbbbb";
+    if(bio == NULL)
+    {
+        cerr << "ERROR: Problem with creting socket" << endl;
+        return NULL;
+    }
+
+
+    if(BIO_do_connect(bio) <= 0)
+    {
+        cerr << "ERROR: Could not connect" << endl;
+        return NULL;
+    }
+    return bio;
 }
 
 
