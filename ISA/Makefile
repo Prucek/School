@@ -4,12 +4,12 @@
 
 CPPFLAGS= -std=c++17 -Wall -Wextra -pedantic -g 
 
-SRC= popcl.hpp
+SRC= popcl.hpp PopOptions.hpp POP3.hpp
 
 all: clean popcl
 
 popcl: $(SRC)
-	g++ $(CPPFLAGS) popcl.cpp  -o popcl -lssl -lcrypto -lz 
+	g++ $(CPPFLAGS) popcl.cpp  PopOptions.cpp  POP3.cpp -o popcl -lssl -lcrypto -lz 
 
 .PHONY: clean
 
