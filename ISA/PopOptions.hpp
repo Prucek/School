@@ -46,6 +46,8 @@ class PopOptions
         char* getOutputDirecotry(){return this->outputDirecory;}
         char* getServer(){return this->server;}
         int getPort(){return this->port;}
+        bool getPop3S(){return this->pop3s;};
+        bool getStls(){return this->stls;};
         bool Create(char *argv[], int argc);
         
 

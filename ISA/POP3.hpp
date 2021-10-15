@@ -34,9 +34,13 @@ class POP3
         BIO *bio;
         AuthorizationPair pair;
         PopOptions options;
+        SSL_CTX *ctx;
+        char hostname[MAX_NAME_LEN];
 
         bool ReadAuthFile(char *file_name);
         bool ConnectionUnsecure();
+        bool ConnectionSecure();  // POP3s
+        void MakeHostname();
 
     public:
         POP3(PopOptions options);

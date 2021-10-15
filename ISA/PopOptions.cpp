@@ -25,7 +25,7 @@ bool PopOptions::Create(char *argv[], int argc)
     bool returnValue = ArgumentParse(argc, argv);
     if (server == NULL || !returnValue)
     {
-        cout << "Usage:" << endl;
+        cout << "Usage:" << endl; // TODO mozno vymazat = vystup 1 riadok
         cout << " popcl <server> [-p <port>] [-T|-S [-c <certfile>] [-C <certaddr>]]"
                 " [-d] [-n] -a <auth_file> -o <out_dir>" << endl;
         return false;
@@ -108,6 +108,7 @@ bool PopOptions::ArgumentParse(int argc, char* argv[])
             case 'T':
             {
                 this->pop3s = true;
+                this->port = 995; // default pop3s
                 break;
             }
             case 'S':
