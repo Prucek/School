@@ -11,6 +11,8 @@
 
 POP3::POP3(PopOptions options)
 {
+    ctx = NULL;
+    SSL_library_init();
     SSL_load_error_strings();
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
@@ -21,8 +23,14 @@ POP3::POP3(PopOptions options)
 POP3::~POP3()
 {
     if (ctx != NULL) SSL_CTX_free(ctx);
-    BIO_reset(bio);
     BIO_free_all(bio);
+
+    // SOURCE:
+    // https://stackoverflow.com/questions/29008145/valgrind-shows-memory-leak-in-ssl-after-closing-the-connection
+    // CRYPTO_cleanup_all_ex_data();
+    // ERR_free_strings();
+    // ERR_remove_state(0);
+    // EVP_cleanup();
 }
 
 
@@ -53,31 +61,33 @@ bool POP3::SendMessage(string str)
 }
 
 
-string POP3::ReadMessage()
+bool POP3::ReadMessage(string dot)
 {
-    char buf[BUF_SIZE] = {0};
     bool loop = true;
-    
+    this->message = "";
     while (loop)
     {
+        char buf[BUF_SIZE]= {0};
         int ret_val = BIO_read(bio, buf, BUF_SIZE);
         if(ret_val <= 0)
         {
             if(! BIO_should_retry(bio))
             {
                 cerr << "ERROR: Could not send request" << endl;
-                return {};
+                return false;
             }
         }
         else
         {
-            //ok
-            loop = false;
+            string str(buf);
+            this->message.append(str);
+            if (this->message.find(dot) != string::npos)
+                loop = false;
         }
     }
-    string str(buf);
-    if(LOGGER) cout <<"S: "<< str;
-    return str;
+    if (! CheckOK()) return false;
+    if(LOGGER) cout <<"S: "<< this->message;
+    return true;
 }
 
 
@@ -98,29 +108,27 @@ bool POP3::Authenticate()
     returnValue = ReadAuthFile(options.getAuthorizationFile());
     if (returnValue == false)
         return false;
-
-    string msg = ReadMessage();
-    if (msg.empty())
+    if (! ReadMessage("\r\n")) 
     {
+        cerr << "ERROR: POP3 not ready" << endl;
         return false;
     }
 
     returnValue = SendMessage("USER " + this->pair.username + "\r\n");
     if (returnValue == false)
         return false;
-
-    msg = ReadMessage();
-    if (msg.empty())
+    if (! ReadMessage("\r\n")) 
     {
+        cerr << "ERROR: Username not found" << endl;
         return false;
     }
 
     returnValue = SendMessage("PASS " + this->pair.password + "\r\n");
     if (returnValue == false)
         return false;
-    msg = ReadMessage();
-    if (msg.empty())
+    if (! ReadMessage("\r\n")) 
     {
+        cerr << "ERROR: Password wrong" << endl;
         return false;
     }
 
@@ -221,15 +229,20 @@ bool POP3::ConnectionSecure()
 
     if(BIO_do_connect(bio) <= 0)
     {
-        cerr << "ERROR: BIO do connect, Could not connect" << endl;
+        cerr << "ERROR: Error connecting to server" << endl;
+        return false;
+    }
+     if(BIO_do_handshake(bio) <= 0)
+    {
+        cerr << "ERROR: Error establishing SSL connection" << endl;
         return false;
     }
 
-    if(SSL_get_verify_result(ssl) != X509_V_OK)
-    {
-        cerr << "ERROR: verify, Could not connect" << endl;
-        return false;
-    }
+    // if(SSL_get_verify_result(ssl) != X509_V_OK)
+    // {
+    //     cerr << "ERROR: verify, Could not connect" << endl;
+    //     return false;
+    // }
 
     return true;
 }
@@ -238,8 +251,81 @@ void POP3::MakeHostname()
 {
     char str[MAX_PORT_LEN];
     sprintf(str, "%d", options.getPort());
-
+    // strcpy (hostname, "["); // add ipv6
     strcpy(hostname, options.getServer());
     strcat(hostname, ":");
     strcat(hostname,str);
+}
+
+bool POP3::DownloadList()
+{
+    // SendMessage("LIST\r\n");
+    // ReadMessage();
+    // ParseList();
+    SendMessage("RETR 3\r\n");
+    bool ret = ReadMessage("\r\n.\r\n");
+    cout << endl << ret << endl;
+    cout << message.length() << endl;
+
+    return true;
+}
+
+bool POP3::ParseList()
+{
+    string delimiter = "\r\n";
+
+    size_t pos = 0;
+    int count = 0;
+    string line;
+    while ((pos = message.find(delimiter)) != string::npos )
+    {
+        if (count == 0) // not the first line
+        {
+            count++;
+            message.erase(0, pos + delimiter.length());
+            continue;
+        }
+        line = message.substr(0, pos); // line with email number and length
+        if (line.find(".") != string::npos) break; // not the last line
+
+        DownloadMail(line);
+        // cout << line << endl;
+        message.erase(0, pos + delimiter.length());
+    }
+
+    return true;
+}
+
+bool POP3::DownloadMail(string line)
+{
+    size_t pos = 0;
+    string delimiter = " ";
+    pos = line.find(delimiter);
+    string mailNumber = line.substr(0, pos);
+    // int mailLen = stoi(line.substr(pos+1, line.find('\r')));
+    // cout << mailNumber;
+    SendMessage("RETR " + mailNumber + "\r\n");
+    // cout << message.length() << endl;
+    // if (message.length() == mailLen)
+    // {
+    //     cout << "poriadku";
+    // }
+    // else {
+    //     cout << "ne poriadku";
+    // }
+    return true;
+}
+
+
+
+bool POP3::CheckOK()
+{
+    if(message.find("+OK") != string::npos)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }

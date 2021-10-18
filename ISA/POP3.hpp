@@ -12,6 +12,7 @@ using namespace std;
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <string>
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
 #include "openssl/err.h"
@@ -20,7 +21,7 @@ using namespace std;
 
 #define MAX_PORT_LEN 16
 #define MAX_NAME_LEN 256
-#define BUF_SIZE 1024
+#define BUF_SIZE 4096 // 1022
 
 struct AuthorizationPair
 {
@@ -36,18 +37,23 @@ class POP3
         PopOptions options;
         SSL_CTX *ctx;
         char hostname[MAX_NAME_LEN];
+        string message;
 
         bool ReadAuthFile(char *file_name);
         bool ConnectionUnsecure();
         bool ConnectionSecure();  // POP3s
         void MakeHostname();
+        bool CheckOK();
+        bool ReadMessage(string dot);
+        bool SendMessage(string str);
+        bool ParseList();
+        bool DownloadMail(string line);
 
     public:
         POP3(PopOptions options);
         ~POP3();
-        bool SendMessage(string str);
-        string ReadMessage();
         bool Authenticate();
+        bool DownloadList();
 };
 
 #endif
