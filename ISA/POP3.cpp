@@ -64,11 +64,11 @@ bool POP3::SendMessage(string str)
 bool POP3::ReadMessage(string dot)
 {
     bool loop = true;
-    this->message = "";
+    this->message.clear();
     while (loop)
     {
         char buf[BUF_SIZE]= {0};
-        int ret_val = BIO_read(bio, buf, BUF_SIZE);
+        int ret_val = BIO_read(bio, buf, BUF_SIZE - 2);
         if(ret_val <= 0)
         {
             if(! BIO_should_retry(bio))
@@ -80,14 +80,15 @@ bool POP3::ReadMessage(string dot)
         else
         {
             string str(buf);
-            this->message.append(str);
+            this->message += str;
             if (this->message.find(dot) != string::npos)
+            {
                 loop = false;
+            }
         }
     }
-    if (! CheckOK()) return false;
     if(LOGGER) cout <<"S: "<< this->message;
-    return true;
+    return CheckOK();
 }
 
 
@@ -108,7 +109,7 @@ bool POP3::Authenticate()
     returnValue = ReadAuthFile(options.getAuthorizationFile());
     if (returnValue == false)
         return false;
-    if (! ReadMessage("\r\n")) 
+    if (! ReadMessage("\r\n"))
     {
         cerr << "ERROR: POP3 not ready" << endl;
         return false;
@@ -117,7 +118,7 @@ bool POP3::Authenticate()
     returnValue = SendMessage("USER " + this->pair.username + "\r\n");
     if (returnValue == false)
         return false;
-    if (! ReadMessage("\r\n")) 
+    if (! ReadMessage("\r\n"))
     {
         cerr << "ERROR: Username not found" << endl;
         return false;
@@ -126,7 +127,7 @@ bool POP3::Authenticate()
     returnValue = SendMessage("PASS " + this->pair.password + "\r\n");
     if (returnValue == false)
         return false;
-    if (! ReadMessage("\r\n")) 
+    if (! ReadMessage("\r\n"))
     {
         cerr << "ERROR: Password wrong" << endl;
         return false;
@@ -257,62 +258,38 @@ void POP3::MakeHostname()
     strcat(hostname,str);
 }
 
-bool POP3::DownloadList()
+bool POP3::DownloadAllMails()
 {
-    // SendMessage("LIST\r\n");
-    // ReadMessage();
-    // ParseList();
-    SendMessage("RETR 3\r\n");
-    bool ret = ReadMessage("\r\n.\r\n");
-    cout << endl << ret << endl;
-    cout << message.length() << endl;
-
+    int emailNumber = GetNumberOfMails();
+    for(; emailNumber > 0; emailNumber--)
+    {
+        SendMessage("RETR "+ to_string(emailNumber) + "\r\n");
+        ReadMessage("\r\n.\r\n");
+        DownloadMail();
+    }
+    
     return true;
 }
 
-bool POP3::ParseList()
+int POP3::GetNumberOfMails()
 {
+    string whole;
+    SendMessage("LIST\r\n");
+    ReadMessage("\r\n.\r\n");
     string delimiter = "\r\n";
-
-    size_t pos = 0;
     int count = 0;
-    string line;
+    size_t pos = 0;
     while ((pos = message.find(delimiter)) != string::npos )
     {
-        if (count == 0) // not the first line
-        {
-            count++;
-            message.erase(0, pos + delimiter.length());
-            continue;
-        }
-        line = message.substr(0, pos); // line with email number and length
-        if (line.find(".") != string::npos) break; // not the last line
-
-        DownloadMail(line);
-        // cout << line << endl;
-        message.erase(0, pos + delimiter.length());
+        count++;
+        message.erase(0, pos + 1);
     }
 
-    return true;
+    return count - 2;
 }
 
-bool POP3::DownloadMail(string line)
+bool POP3::DownloadMail()
 {
-    size_t pos = 0;
-    string delimiter = " ";
-    pos = line.find(delimiter);
-    string mailNumber = line.substr(0, pos);
-    // int mailLen = stoi(line.substr(pos+1, line.find('\r')));
-    // cout << mailNumber;
-    SendMessage("RETR " + mailNumber + "\r\n");
-    // cout << message.length() << endl;
-    // if (message.length() == mailLen)
-    // {
-    //     cout << "poriadku";
-    // }
-    // else {
-    //     cout << "ne poriadku";
-    // }
     return true;
 }
 

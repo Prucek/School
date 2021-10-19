@@ -21,7 +21,7 @@ using namespace std;
 
 #define MAX_PORT_LEN 16
 #define MAX_NAME_LEN 256
-#define BUF_SIZE 4096 // 1022
+#define BUF_SIZE 1024
 
 struct AuthorizationPair
 {
@@ -46,14 +46,14 @@ class POP3
         bool CheckOK();
         bool ReadMessage(string dot);
         bool SendMessage(string str);
-        bool ParseList();
-        bool DownloadMail(string line);
+        int GetNumberOfMails();
+        bool DownloadMail();
 
     public:
         POP3(PopOptions options);
         ~POP3();
         bool Authenticate();
-        bool DownloadList();
+        bool DownloadAllMails();
 };
 
 #endif

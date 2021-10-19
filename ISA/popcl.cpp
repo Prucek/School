@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     {
         return POP_ERR;
     }
-    pop.DownloadList();
+    pop.DownloadAllMails();
 
     return OK;
 }
