@@ -265,31 +265,51 @@ bool POP3::DownloadAllMails()
     {
         SendMessage("RETR "+ to_string(emailNumber) + "\r\n");
         ReadMessage("\r\n.\r\n");
-        DownloadMail();
+        DownloadMail(emailNumber);
     }
-    
     return true;
 }
 
 int POP3::GetNumberOfMails()
 {
     string whole;
-    SendMessage("LIST\r\n");
-    ReadMessage("\r\n.\r\n");
-    string delimiter = "\r\n";
+    SendMessage("STAT\r\n");
+    ReadMessage("\r\n");
+    string delimiter = " ";
     int count = 0;
     size_t pos = 0;
-    while ((pos = message.find(delimiter)) != string::npos )
+    while ((pos = this->message.find(delimiter)) != string::npos )
     {
+        if(count == 0)
+        {
+            this->message.erase(0, pos + 1);
+        }
+        if (count == 1)
+        {
+            this->message.erase(pos, this->message.find("\r\n"));
+        }
         count++;
-        message.erase(0, pos + 1);
     }
-
-    return count - 2;
+    return stoi(message);
 }
 
-bool POP3::DownloadMail()
+bool POP3::DownloadMail(int number)
 {
+    // delete first line from server +OK .... octets..
+    this->message.erase(0, this->message.find("\n") + 1);
+    // delete terminantion octet
+    this->message = this->message.substr(0, this->message.size() - 3);
+    // delete dots
+    string replacement = "\r\n.";
+    regex toReplace("\r\n\\.\\.");
+    this->message = std::regex_replace(this->message, toReplace, replacement);
+
+    // write to file
+    ofstream myfile;
+    string outDir(this->options.getOutputDirecotry());
+    myfile.open( outDir + "/mail_" + to_string(number) + ".eml");
+    myfile << this->message;
+    myfile.close();
     return true;
 }
 
