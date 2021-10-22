@@ -10,8 +10,8 @@
 PopOptions::PopOptions()
 {
     this->port = 110; //default POP3
-    this->deleteMessages = false;
-    this->only_new = false;
+    this->deleteFlag = false;
+    this->newFlag = false;
     this->pop3s = false; // -T
     this->stls = false;  // -S
     this->tlsCertificate = NULL;
@@ -142,12 +142,12 @@ bool PopOptions::ArgumentParse(int argc, char* argv[])
             }
             case 'd':
             {
-                this->deleteMessages = true;
+                this->deleteFlag = true;
                 break;
             }
             case 'n':
             {
-                this->only_new = true;
+                this->newFlag = true;
                 break;
             }
             case '?':

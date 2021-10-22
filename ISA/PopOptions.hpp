@@ -27,8 +27,8 @@ class PopOptions
         char *outputDirecory;
         int port;
         char *server;
-        bool deleteMessages;
-        bool only_new;
+        bool deleteFlag;
+        bool newFlag;
         bool pop3s; // -T
         bool stls;  // -S
         char *tlsCertificate;
@@ -48,6 +48,8 @@ class PopOptions
         int getPort(){return this->port;}
         bool getPop3S(){return this->pop3s;};
         bool getStls(){return this->stls;};
+        bool getDeleteFlag(){return this->deleteFlag;}
+        bool getNewFlag(){return this->newFlag;}
         bool Create(char *argv[], int argc);
         
 

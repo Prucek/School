@@ -16,11 +16,23 @@ int main(int argc, char *argv[])
     }
 
     POP3 pop = POP3(options);
-    if(!pop.Authenticate())
+    bool onlyNew = false;
+    int numberOfMails = pop.Execute(&onlyNew);
+    if(numberOfMails == DOWNLOAD_FAILED)
     {
         return POP_ERR;
     }
-    pop.DownloadAllMails();
+    else
+    {
+        if (onlyNew)
+        {
+            cout << "Downloaded " << numberOfMails << " new emails." << endl;
+        }
+        else
+        {
+            cout << "Downloaded " << numberOfMails << " emails." << endl;
+        }
+    }
 
     return OK;
 }

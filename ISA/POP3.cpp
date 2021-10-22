@@ -11,7 +11,7 @@
 
 POP3::POP3(PopOptions options)
 {
-    ctx = NULL;
+    this->ctx = NULL;
     SSL_library_init();
     SSL_load_error_strings();
     ERR_load_BIO_strings();
@@ -22,7 +22,7 @@ POP3::POP3(PopOptions options)
 
 POP3::~POP3()
 {
-    if (ctx != NULL) SSL_CTX_free(ctx);
+    if (this->ctx != NULL) SSL_CTX_free(this->ctx);
     BIO_free_all(bio);
 
     // SOURCE:
@@ -33,6 +33,29 @@ POP3::~POP3()
     // EVP_cleanup();
 }
 
+
+int POP3::Execute(bool *onlyNew)
+{
+    bool result = Authenticate();
+    if( ! result) return DOWNLOAD_FAILED;
+
+    int downloaded = DOWNLOAD_FAILED;
+    if(this->options.getNewFlag())
+    {
+        *onlyNew = true;
+        downloaded = DownloadOnlyNew();
+    }
+    else if(this->options.getDeleteFlag())
+    {
+        // Delete()
+    }
+    else
+    {
+        downloaded = DownloadAllMails();
+    }
+
+    return downloaded;
+}
 
 bool POP3::SendMessage(string str)
 {
@@ -94,39 +117,39 @@ bool POP3::ReadMessage(string dot)
 
 bool POP3::Authenticate()
 {
-    bool returnValue;
+    bool result;
     if (this->options.getPop3S())
     {
-        returnValue = ConnectionSecure();
+        result = ConnectionSecure();
     }
     else 
     {
-        returnValue = ConnectionUnsecure();
+        result = ConnectionUnsecure();
     }
-    if (returnValue == false)
-        return false;
+    if (! result) return false;
 
-    returnValue = ReadAuthFile(options.getAuthorizationFile());
-    if (returnValue == false)
-        return false;
+    result = ReadAuthFile(this->options.getAuthorizationFile());
+    if (! result) return false;
+
+    // firts response from server
     if (! ReadMessage("\r\n"))
     {
         cerr << "ERROR: POP3 not ready" << endl;
         return false;
     }
 
-    returnValue = SendMessage("USER " + this->pair.username + "\r\n");
-    if (returnValue == false)
-        return false;
+    result = SendMessage("USER " + this->pair.username + "\r\n");
+    if (! result) return false;
+
     if (! ReadMessage("\r\n"))
     {
         cerr << "ERROR: Username not found" << endl;
         return false;
     }
 
-    returnValue = SendMessage("PASS " + this->pair.password + "\r\n");
-    if (returnValue == false)
-        return false;
+    result = SendMessage("PASS " + this->pair.password + "\r\n");
+    if (! result) return false;
+
     if (! ReadMessage("\r\n"))
     {
         cerr << "ERROR: Password wrong" << endl;
@@ -162,8 +185,8 @@ bool POP3::ReadAuthFile(char *file_name)
     // password = pswd
     if ((words[0] == "username") && (words[1] == "=") && (words[3] == "password") && (words[4] == "="))
     {
-        pair.username = words[2];
-        pair.password = words[5];
+        this->pair.username = words[2];
+        this->pair.password = words[5];
         file.close();
         return true;
     }
@@ -181,7 +204,7 @@ bool POP3::ConnectionUnsecure()
 
     this->bio = BIO_new_connect(hostname);
 
-    if(bio == NULL)
+    if(this->bio == NULL)
     {
         cerr << "ERROR: Problem with creating socket" << endl;
         return false;
@@ -202,7 +225,7 @@ bool POP3::ConnectionSecure()
     MakeHostname();
     if(LOGGER) cout << hostname << endl;
 
-    ctx = SSL_CTX_new(SSLv23_client_method());
+    this->ctx = SSL_CTX_new(SSLv23_client_method());
     SSL *ssl;
     // TODO
     // if(! SSL_CTX_load_verify_locations(ctx, "/path/to/TrustStore.pem", NULL))
@@ -213,13 +236,13 @@ bool POP3::ConnectionSecure()
     // {
     //     // Handle error here
     // }
-    if (! SSL_CTX_set_default_verify_paths(ctx))
+    if (! SSL_CTX_set_default_verify_paths(this->ctx))
     {
         cerr << "ERROR: Certificate not found" << endl;
         return false;
     }
 
-    bio = BIO_new_ssl_connect(ctx);
+    this->bio = BIO_new_ssl_connect(this->ctx);
     BIO_get_ssl(bio, &ssl);
     SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
 
@@ -248,33 +271,73 @@ bool POP3::ConnectionSecure()
     return true;
 }
 
+
 void POP3::MakeHostname()
 {
     char str[MAX_PORT_LEN];
-    sprintf(str, "%d", options.getPort());
+    sprintf(str, "%d", this->options.getPort());
     // strcpy (hostname, "["); // add ipv6
-    strcpy(hostname, options.getServer());
-    strcat(hostname, ":");
-    strcat(hostname,str);
+    strcpy(this->hostname, this->options.getServer());
+    strcat(this->hostname, ":");
+    strcat(this->hostname,str);
 }
 
-bool POP3::DownloadAllMails()
+
+int POP3::DownloadAllMails()
 {
     int emailNumber = GetNumberOfMails();
+    int numberOfMails = emailNumber;
+    
     for(; emailNumber > 0; emailNumber--)
     {
-        SendMessage("RETR "+ to_string(emailNumber) + "\r\n");
-        ReadMessage("\r\n.\r\n");
-        DownloadMail(emailNumber);
+        bool result = DownloadMail(emailNumber);
+        if (! result) return DOWNLOAD_FAILED;
+
+        result = AddUIDLentry(emailNumber);
+        if (! result) return DOWNLOAD_FAILED;
     }
-    return true;
+
+    return numberOfMails;
 }
+
+
+int POP3::DownloadOnlyNew()
+{
+    int emailNumber = GetNumberOfMails();
+    int count = 0;
+    bool result;
+    for(; emailNumber > 0; emailNumber--)
+    {
+        result = GetUIDLofMessage(emailNumber);
+        if (! result) return DOWNLOAD_FAILED;
+
+        result = IsMessageNew(this->message);
+        if(result)
+        {
+            count++;
+            result = DownloadMail(emailNumber);
+            if (! result) return DOWNLOAD_FAILED;
+
+            result = AddUIDLentry(emailNumber);
+            if (! result) return DOWNLOAD_FAILED;
+        }
+    }
+
+    return count;
+}
+
 
 int POP3::GetNumberOfMails()
 {
     string whole;
-    SendMessage("STAT\r\n");
-    ReadMessage("\r\n");
+    bool result = SendMessage("STAT\r\n");
+    if (! result) return 0;
+
+    if (! ReadMessage("\r\n"))
+    {
+        cerr << "ERROR: STAT problem" << endl;
+        return 0;
+    }
     string delimiter = " ";
     int count = 0;
     size_t pos = 0;
@@ -293,8 +356,16 @@ int POP3::GetNumberOfMails()
     return stoi(message);
 }
 
-bool POP3::DownloadMail(int number)
+
+bool POP3::DownloadMail(int messageNumber)
 {
+    bool result = SendMessage("RETR "+ to_string(messageNumber) + "\r\n");
+    if (! result) return false;
+    if ( !ReadMessage("\r\n.\r\n")) 
+    {
+        cerr << "ERROR: RETR problem" << endl;
+        return false;
+    }
     // delete first line from server +OK .... octets..
     this->message.erase(0, this->message.find("\n") + 1);
     // delete terminantion octet
@@ -307,17 +378,68 @@ bool POP3::DownloadMail(int number)
     // write to file
     ofstream myfile;
     string outDir(this->options.getOutputDirecotry());
-    myfile.open( outDir + "/mail_" + to_string(number) + ".eml");
+    myfile.open( outDir + "/" + this->pair.username + "_mail_" + to_string(messageNumber) + ".eml");
     myfile << this->message;
     myfile.close();
     return true;
 }
 
+bool POP3::AddUIDLentry(int messageNumber)
+{
+    bool result = GetUIDLofMessage(messageNumber);
+    if (! result) return false;
+    ofstream dbfile;
+    dbfile.open(DB_NAME, ios_base::app);
+    dbfile << this->message;
+    dbfile.close();
+    return true;
+}
+
+
+bool POP3::GetUIDLofMessage(int messageNumber)
+{
+    bool result = SendMessage("UIDL " + to_string(messageNumber) + "\r\n");
+    if (! result) return false;
+
+    if (! ReadMessage("\r\n"))
+    {
+        cerr << "ERROR: UIDL problem" << endl;
+        return false;
+    }
+    ParseUIDLofMessage();
+    return true;
+}
+
+void POP3::ParseUIDLofMessage()
+{
+    this->message.erase(0, this->message.find(" ") + 1);
+    this->message.erase(0, this->message.find(" ") + 1);
+}
+
+
+bool POP3::IsMessageNew(string uidlNew)
+{
+    ifstream loacalDb(DB_NAME);
+    if (loacalDb.is_open())
+    {
+        string uidlLine;
+        while(getline(loacalDb, uidlLine))
+        {
+            uidlLine = uidlLine + "\n";
+            if(uidlNew == uidlLine)
+            {
+                return false;
+            }
+        }
+   }
+   loacalDb.close();
+   return true;
+}
 
 
 bool POP3::CheckOK()
 {
-    if(message.find("+OK") != string::npos)
+    if(this->message.find("+OK") != string::npos)
     {
         return true;
     }

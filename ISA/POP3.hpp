@@ -23,6 +23,8 @@ using namespace std;
 #define MAX_PORT_LEN 16
 #define MAX_NAME_LEN 256
 #define BUF_SIZE 1024
+#define DB_NAME ".UIDL_db"
+#define DOWNLOAD_FAILED -1
 
 struct AuthorizationPair
 {
@@ -40,6 +42,9 @@ class POP3
         char hostname[MAX_NAME_LEN];
         string message;
 
+
+        bool Authenticate();
+        int DownloadAllMails();
         bool ReadAuthFile(char *file_name);
         bool ConnectionUnsecure();
         bool ConnectionSecure();  // POP3s
@@ -48,13 +53,17 @@ class POP3
         bool ReadMessage(string dot);
         bool SendMessage(string str);
         int GetNumberOfMails();
-        bool DownloadMail(int number);
+        bool DownloadMail(int messageNumber);
+        bool GetUIDLofMessage(int messageNumber);
+        void ParseUIDLofMessage();
+        bool AddUIDLentry(int messageNumber);
+        bool IsMessageNew(string uidl);
+        int DownloadOnlyNew();
 
     public:
         POP3(PopOptions options);
         ~POP3();
-        bool Authenticate();
-        bool DownloadAllMails();
+        int Execute(bool *onlyNew);
 };
 
 #endif

@@ -2,7 +2,7 @@
 # Author: Peter Rucek, xrucek00
 # Date: 1.10.2021
 
-CPPFLAGS= -std=c++17 -Wall -Wextra -pedantic -g 
+CPPFLAGS= -std=c++11 -Wall -Wextra -pedantic -g 
 
 SRC= popcl.hpp PopOptions.hpp POP3.hpp
 
