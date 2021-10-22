@@ -25,9 +25,9 @@ bool PopOptions::Create(char *argv[], int argc)
     bool returnValue = ArgumentParse(argc, argv);
     if (server == NULL || !returnValue)
     {
-        cout << "Usage:" << endl; // TODO mozno vymazat = vystup 1 riadok
-        cout << " popcl <server> [-p <port>] [-T|-S [-c <certfile>] [-C <certaddr>]]"
-                " [-d] [-n] -a <auth_file> -o <out_dir>" << endl;
+        cout << "Usage: "
+        " popcl <server> [-p <port>] [-T|-S [-c <certfile>] [-C <certaddr>]]"
+        " [-d] [-n] -a <auth_file> -o <out_dir>" << endl;
         return false;
     }
     return true;
@@ -95,12 +95,12 @@ bool PopOptions::ArgumentParse(int argc, char* argv[])
                 this->port = (unsigned)strtoul(optarg, &endptr, 10);
                 if (strcmp(endptr, "")) 
                 {
-                    cerr << "ERROR: port should be a number (0-65535)" << endl;
+                    cerr << "ERROR: port should be a number (0-65535)." << endl;
                     return false;
                 }
                 if (this->port > 65535 || optarg[0] == '-')
                 {
-                    cerr << "ERROR: port should be a number (0-65535)" << endl;
+                    cerr << "ERROR: port should be a number (0-65535)." << endl;
                     return false;
                 }
                 break;
@@ -158,24 +158,24 @@ bool PopOptions::ArgumentParse(int argc, char* argv[])
 
     if (this->outputDirecory == NULL)
     {
-        cerr << "ERROR: You need to specify output directory" << endl;
+        cerr << "ERROR: You need to specify output directory." << endl;
         return false;
     }
     if (this->authorizationFile == NULL)
     {
-        cerr << "ERROR: You need to specify authorization file" << endl;
+        cerr << "ERROR: You need to specify authorization file." << endl;
         return false;
     }
     if (this->stls && this->pop3s)
     {
-        cerr << "ERROR: Cannot do both STLS and POP3s, choose only one" << endl;
+        cerr << "ERROR: Cannot do both STLS and POP3s, choose only one." << endl;
         return false;
     }
     if (this->tlsCertificate != NULL || this->tlsDirectory != NULL )
     {
         if (!(this->stls || this->pop3s))
         {
-            cerr << "ERROR: Certificate only with options -S or -T" << endl;
+            cerr << "ERROR: Certificate only with options -S or -T." << endl;
             return false;
         }
     }
@@ -185,23 +185,23 @@ bool PopOptions::ArgumentParse(int argc, char* argv[])
 bool PopOptions::CheckFile(char *string)
 {
     struct stat buffer;
-    if( stat( optarg, &buffer ) != 0 )
-        cerr << "ERROR: " << string << " is not a file" << endl;
+    if( stat( string, &buffer ) != 0 )
+        cerr << "ERROR: " << string << " is not a file." << endl;
     else if( buffer.st_mode & S_IFREG )
         return true;
     else
-        cerr << "ERROR: " << string << " is not a file" << endl;
+        cerr << "ERROR: " << string << " is not a file." << endl;
     return false;
 }
 
 bool PopOptions::CheckDir(char *string)
 {
     struct stat buffer;
-    if( stat( optarg, &buffer ) != 0 )
-        cerr << "ERROR: " << string << " is not a directory" << endl;
+    if( stat( string, &buffer ) != 0 )
+        cerr << "ERROR: " << string << " is not a directory." << endl;
     else if( buffer.st_mode & S_IFDIR )
         return true;
     else
-        cerr << "ERROR: " << string << " is not a directory" << endl;
+        cerr << "ERROR: " << string << " is not a directory." << endl;
     return false;
 }

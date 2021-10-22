@@ -59,6 +59,8 @@ class POP3
         bool AddUIDLentry(int messageNumber);
         bool IsMessageNew(string uidl);
         int DownloadOnlyNew();
+        bool CheckCertificate();
+        bool Delete();
 
     public:
         POP3(PopOptions options);

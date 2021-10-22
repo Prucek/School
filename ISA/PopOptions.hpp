@@ -50,6 +50,8 @@ class PopOptions
         bool getStls(){return this->stls;};
         bool getDeleteFlag(){return this->deleteFlag;}
         bool getNewFlag(){return this->newFlag;}
+        char* getTlsCertificate(){return this->tlsCertificate;}
+        char* getTlsDirectory(){return this->tlsDirectory;}
         bool Create(char *argv[], int argc);
         
 

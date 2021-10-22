@@ -69,7 +69,7 @@ bool POP3::SendMessage(string str)
         if(ret_val <= 0)
         {
             if (!BIO_should_retry(bio)) {
-                cerr << "ERROR: Could not send request" << endl;
+                cerr << "ERROR: Could not send request." << endl;
                 return false;
             }
         }
@@ -96,7 +96,7 @@ bool POP3::ReadMessage(string dot)
         {
             if(! BIO_should_retry(bio))
             {
-                cerr << "ERROR: Could not send request" << endl;
+                cerr << "ERROR: Could not send request." << endl;
                 return false;
             }
         }
@@ -122,7 +122,7 @@ bool POP3::Authenticate()
     {
         result = ConnectionSecure();
     }
-    else 
+    else
     {
         result = ConnectionUnsecure();
     }
@@ -132,9 +132,9 @@ bool POP3::Authenticate()
     if (! result) return false;
 
     // firts response from server
-    if (! ReadMessage("\r\n"))
+    if (! ReadMessage("\n"))
     {
-        cerr << "ERROR: POP3 not ready" << endl;
+        cerr << "ERROR: POP3 not ready." << endl;
         return false;
     }
 
@@ -143,7 +143,7 @@ bool POP3::Authenticate()
 
     if (! ReadMessage("\r\n"))
     {
-        cerr << "ERROR: Username not found" << endl;
+        cerr << "ERROR: Username not found." << endl;
         return false;
     }
 
@@ -152,7 +152,7 @@ bool POP3::Authenticate()
 
     if (! ReadMessage("\r\n"))
     {
-        cerr << "ERROR: Password wrong" << endl;
+        cerr << "ERROR: Password wrong." << endl;
         return false;
     }
 
@@ -192,13 +192,17 @@ bool POP3::ReadAuthFile(char *file_name)
     }
 
     file.close();
-    cerr << "ERROR: Problem with reading authorization file" << endl;
+    cerr << "ERROR: Problem with reading authorization file." << endl;
     return false;
 }
 
 
 bool POP3::ConnectionUnsecure()
 {
+    if (this->options.getStls())
+    {
+        //TODO
+    }
     MakeHostname();
     if(LOGGER) cout << hostname << endl;
 
@@ -206,13 +210,13 @@ bool POP3::ConnectionUnsecure()
 
     if(this->bio == NULL)
     {
-        cerr << "ERROR: Problem with creating socket" << endl;
+        cerr << "ERROR: Problem with creating socket." << endl;
         return false;
     }
 
     if(BIO_do_connect(bio) <= 0)
     {
-        cerr << "ERROR: Could not connect" << endl;
+        cerr << "ERROR: Could not connect." << endl;
         return false;
     }
 
@@ -223,51 +227,91 @@ bool POP3::ConnectionUnsecure()
 bool POP3::ConnectionSecure()
 {
     MakeHostname();
-    if(LOGGER) cout << hostname << endl;
+    if(LOGGER) cout << this->hostname << endl;
 
-    this->ctx = SSL_CTX_new(SSLv23_client_method());
-    SSL *ssl;
-    // TODO
-    // if(! SSL_CTX_load_verify_locations(ctx, "/path/to/TrustStore.pem", NULL))
-    // {
-    //     // Handle failed load here
-    // }
-    // if(! SSL_CTX_load_verify_locations(ctx, NULL, "/path/to/certfolder"))
-    // {
-    //     // Handle error here
-    // }
-    if (! SSL_CTX_set_default_verify_paths(this->ctx))
+    this->ctx = SSL_CTX_new(TLS_client_method());
+    if (this->ctx == NULL)
     {
-        cerr << "ERROR: Certificate not found" << endl;
+        cerr << "ERROR: Could not create SSL struct." << endl;
         return false;
     }
+    SSL *ssl;
+    
+    bool result = CheckCertificate();
+    if(! result) return false;
 
     this->bio = BIO_new_ssl_connect(this->ctx);
-    BIO_get_ssl(bio, &ssl);
+    BIO_get_ssl(this->bio, &ssl);
     SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
 
     // Attempt to connect
-    BIO_set_conn_hostname(bio, hostname);
+    BIO_set_conn_hostname(this->bio, this->hostname);
 
     // Verify the connection opened and perform the handshake
 
     if(BIO_do_connect(bio) <= 0)
     {
-        cerr << "ERROR: Error connecting to server" << endl;
+        cerr << "ERROR: Error connecting to server." << endl;
         return false;
     }
      if(BIO_do_handshake(bio) <= 0)
     {
-        cerr << "ERROR: Error establishing SSL connection" << endl;
+        cerr << "ERROR: Error establishing SSL connection." << endl;
         return false;
     }
+    //Check if server send a certificate
+    if ((SSL_get_peer_certificate(ssl)) == NULL)
+    {
+        cerr << "ERROR: Server did not provide certificate." << endl;
+        return false;
+    }
+    // Verify the certificate
+    if(SSL_get_verify_result(ssl) != X509_V_OK)
+    {
+        cerr << "ERROR: Error verifying, Could not connect." << endl;
+        return false;
+    }
+    return true;
+}
 
-    // if(SSL_get_verify_result(ssl) != X509_V_OK)
-    // {
-    //     cerr << "ERROR: verify, Could not connect" << endl;
-    //     return false;
-    // }
 
+bool POP3::CheckCertificate()
+{
+    char *certificate = this->options.getTlsCertificate();
+    char *directory = this->options.getTlsDirectory();
+
+    if(certificate != NULL && directory == NULL)
+    {
+        if(! SSL_CTX_load_verify_locations(this->ctx, certificate, NULL))
+        {
+            cerr << "ERROR: Certificate not found." << endl;
+            return false;
+        }
+    }
+    else if(certificate == NULL && directory != NULL)
+    {
+        if(! SSL_CTX_load_verify_locations(this->ctx, NULL, directory))
+        {
+            cerr << "ERROR: Certificate folder not found." << endl;
+            return false;
+        }
+    }
+    else if(certificate != NULL && directory != NULL)
+    {
+        if(! SSL_CTX_load_verify_locations(this->ctx, certificate, directory))
+        {
+            cerr << "ERROR: Certificate folder or file not found." << endl;
+            return false;
+        }
+    }
+    else if( certificate == NULL && directory == NULL)
+    {
+        if (! SSL_CTX_set_default_verify_paths(this->ctx))
+        {
+            cerr << "ERROR: Certificate not found." << endl;
+            return false;
+        }
+    }
     return true;
 }
 
@@ -293,8 +337,14 @@ int POP3::DownloadAllMails()
         bool result = DownloadMail(emailNumber);
         if (! result) return DOWNLOAD_FAILED;
 
-        result = AddUIDLentry(emailNumber);
+        result = GetUIDLofMessage(emailNumber);
         if (! result) return DOWNLOAD_FAILED;
+
+        if(IsMessageNew(this->message))
+        {
+            result = AddUIDLentry(emailNumber);
+            if (! result) return DOWNLOAD_FAILED;
+        }
     }
 
     return numberOfMails;
@@ -335,7 +385,7 @@ int POP3::GetNumberOfMails()
 
     if (! ReadMessage("\r\n"))
     {
-        cerr << "ERROR: STAT problem" << endl;
+        cerr << "ERROR: STAT problem." << endl;
         return 0;
     }
     string delimiter = " ";
@@ -363,7 +413,7 @@ bool POP3::DownloadMail(int messageNumber)
     if (! result) return false;
     if ( !ReadMessage("\r\n.\r\n")) 
     {
-        cerr << "ERROR: RETR problem" << endl;
+        cerr << "ERROR: RETR problem." << endl;
         return false;
     }
     // delete first line from server +OK .... octets..
@@ -403,7 +453,7 @@ bool POP3::GetUIDLofMessage(int messageNumber)
 
     if (! ReadMessage("\r\n"))
     {
-        cerr << "ERROR: UIDL problem" << endl;
+        cerr << "ERROR: UIDL problem." << endl;
         return false;
     }
     ParseUIDLofMessage();
@@ -434,6 +484,12 @@ bool POP3::IsMessageNew(string uidlNew)
    }
    loacalDb.close();
    return true;
+}
+
+
+bool POP3::Delete()
+{
+    
 }
 
 
