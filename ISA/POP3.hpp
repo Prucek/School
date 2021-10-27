@@ -41,6 +41,8 @@ class POP3
         SSL_CTX *ctx;
         char hostname[MAX_NAME_LEN];
         string message;
+        SSL *ssl;
+        bool stlsStarted;
 
 
         bool Authenticate();
@@ -48,6 +50,7 @@ class POP3
         bool ReadAuthFile(char *file_name);
         bool ConnectionUnsecure();
         bool ConnectionSecure();  // POP3s
+        bool ConnectionSTLS();
         void MakeHostname();
         bool CheckOK();
         bool ReadMessage(string dot);
@@ -60,7 +63,7 @@ class POP3
         bool IsMessageNew(string uidl);
         int DownloadOnlyNew();
         bool CheckCertificate();
-        bool Delete();
+        int Delete();
 
     public:
         POP3(PopOptions options);

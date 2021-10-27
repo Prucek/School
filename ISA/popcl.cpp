@@ -18,9 +18,13 @@ int main(int argc, char *argv[])
     POP3 pop = POP3(options);
     bool onlyNew = false;
     int numberOfMails = pop.Execute(&onlyNew);
-    if(numberOfMails == DOWNLOAD_FAILED)
+    if (numberOfMails == DOWNLOAD_FAILED)
     {
         return POP_ERR;
+    }
+    else if (numberOfMails < 0)
+    {
+        cout << "Deleted " << -numberOfMails << " emails." << endl;
     }
     else
     {

@@ -17,6 +17,7 @@ POP3::POP3(PopOptions options)
     ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
     this->options = options;
+    this->stlsStarted = false;
 }
 
 
@@ -25,6 +26,7 @@ POP3::~POP3()
     if (this->ctx != NULL) SSL_CTX_free(this->ctx);
     BIO_free_all(bio);
 
+    // TODO
     // SOURCE:
     // https://stackoverflow.com/questions/29008145/valgrind-shows-memory-leak-in-ssl-after-closing-the-connection
     // CRYPTO_cleanup_all_ex_data();
@@ -40,6 +42,7 @@ int POP3::Execute(bool *onlyNew)
     if( ! result) return DOWNLOAD_FAILED;
 
     int downloaded = DOWNLOAD_FAILED;
+    // TODO -n -d at the same time
     if(this->options.getNewFlag())
     {
         *onlyNew = true;
@@ -47,7 +50,8 @@ int POP3::Execute(bool *onlyNew)
     }
     else if(this->options.getDeleteFlag())
     {
-        // Delete()
+        int deleted = Delete();
+        return -deleted;
     }
     else
     {
@@ -65,13 +69,30 @@ bool POP3::SendMessage(string str)
     
     while (loop)
     {
-        int ret_val = BIO_write(bio, buf, (int)str.size());
-        if(ret_val <= 0)
+        int ret_val = 0;
+        if (this->stlsStarted)
         {
-            if (!BIO_should_retry(bio)) {
-                cerr << "ERROR: Could not send request." << endl;
+            ret_val = SSL_write(this->ssl, buf, (int)str.size());
+        }
+        else
+        {
+            ret_val = BIO_write(this->bio, buf, (int)str.size());
+        }
+        if (ret_val <= 0)
+        {
+            if (this->stlsStarted)
+            {
                 return false;
             }
+            else
+            {
+                if (!BIO_should_retry(this->bio))
+                {
+                    cerr << "ERROR: Could not send request." << endl;
+                    return false;
+                }
+            }
+            
         }
         else
         {
@@ -91,13 +112,29 @@ bool POP3::ReadMessage(string dot)
     while (loop)
     {
         char buf[BUF_SIZE]= {0};
-        int ret_val = BIO_read(bio, buf, BUF_SIZE - 2);
-        if(ret_val <= 0)
+        int ret_val = 0;
+        if (this->stlsStarted)
         {
-            if(! BIO_should_retry(bio))
+            ret_val = SSL_read(this->ssl, buf, BUF_SIZE - 2);
+        }
+        else
+        {
+            ret_val = BIO_read(this->bio, buf, BUF_SIZE - 2);
+        }
+        
+        if (ret_val <= 0)
+        {
+            if (this->stlsStarted)
             {
-                cerr << "ERROR: Could not send request." << endl;
                 return false;
+            }
+            else
+            {
+                if (! BIO_should_retry(this->bio))
+                {
+                    cerr << "ERROR: Could not send request." << endl;
+                    return false;
+                }
             }
         }
         else
@@ -117,6 +154,9 @@ bool POP3::ReadMessage(string dot)
 
 bool POP3::Authenticate()
 {
+    MakeHostname();
+    if(LOGGER) cout << this->hostname << endl;
+
     bool result;
     if (this->options.getPop3S())
     {
@@ -131,11 +171,14 @@ bool POP3::Authenticate()
     result = ReadAuthFile(this->options.getAuthorizationFile());
     if (! result) return false;
 
-    // firts response from server
-    if (! ReadMessage("\n"))
+    if (! this->stlsStarted) // if stls already read first message
     {
-        cerr << "ERROR: POP3 not ready." << endl;
-        return false;
+        // first response from server
+        if (! ReadMessage("\r\n"))
+        {
+            cerr << "ERROR: POP3 server error." << endl;
+            return false;
+        }
     }
 
     result = SendMessage("USER " + this->pair.username + "\r\n");
@@ -199,25 +242,26 @@ bool POP3::ReadAuthFile(char *file_name)
 
 bool POP3::ConnectionUnsecure()
 {
-    if (this->options.getStls())
-    {
-        //TODO
-    }
-    MakeHostname();
-    if(LOGGER) cout << hostname << endl;
+    if(LOGGER) cout << "Unsecure connection" << endl;
 
     this->bio = BIO_new_connect(hostname);
 
-    if(this->bio == NULL)
+    if (this->bio == NULL)
     {
         cerr << "ERROR: Problem with creating socket." << endl;
         return false;
     }
 
-    if(BIO_do_connect(bio) <= 0)
+    if (BIO_do_connect(bio) <= 0)
     {
         cerr << "ERROR: Could not connect." << endl;
         return false;
+    }
+
+    if (this->options.getStls())
+    {
+        bool result =  ConnectionSTLS();
+        return result;
     }
 
     return true;
@@ -226,47 +270,92 @@ bool POP3::ConnectionUnsecure()
 
 bool POP3::ConnectionSecure()
 {
-    MakeHostname();
-    if(LOGGER) cout << this->hostname << endl;
-
-    this->ctx = SSL_CTX_new(TLS_client_method());
-    if (this->ctx == NULL)
-    {
-        cerr << "ERROR: Could not create SSL struct." << endl;
-        return false;
-    }
-    SSL *ssl;
+    if(LOGGER) cout << "POP3s connection" << endl;
     
     bool result = CheckCertificate();
     if(! result) return false;
 
     this->bio = BIO_new_ssl_connect(this->ctx);
-    BIO_get_ssl(this->bio, &ssl);
-    SSL_set_mode(ssl, SSL_MODE_AUTO_RETRY);
+    BIO_get_ssl(this->bio, &this->ssl);
+    SSL_set_mode(this->ssl, SSL_MODE_AUTO_RETRY);
 
     // Attempt to connect
     BIO_set_conn_hostname(this->bio, this->hostname);
 
     // Verify the connection opened and perform the handshake
 
-    if(BIO_do_connect(bio) <= 0)
+    if (BIO_do_connect(bio) <= 0)
     {
         cerr << "ERROR: Error connecting to server." << endl;
         return false;
     }
-     if(BIO_do_handshake(bio) <= 0)
+    if (BIO_do_handshake(bio) <= 0)
     {
         cerr << "ERROR: Error establishing SSL connection." << endl;
         return false;
     }
     //Check if server send a certificate
-    if ((SSL_get_peer_certificate(ssl)) == NULL)
+    if ((SSL_get_peer_certificate(this->ssl)) == NULL)
     {
         cerr << "ERROR: Server did not provide certificate." << endl;
         return false;
     }
     // Verify the certificate
-    if(SSL_get_verify_result(ssl) != X509_V_OK)
+    if (SSL_get_verify_result(this->ssl) != X509_V_OK)
+    {
+        cerr << "ERROR: Error verifying, Could not connect." << endl;
+        return false;
+    }
+    return true;
+}
+
+bool POP3::ConnectionSTLS()
+{
+    bool result = CheckCertificate();
+    if(! result) return false;
+
+    if (! ReadMessage("\r\n"))
+    {
+        cerr << "ERROR: POP3 server error." << endl;
+        return false;
+    }
+
+    result = SendMessage("STLS\r\n");
+    if (! result) return false;
+
+    if (! ReadMessage("\r\n"))
+    {
+        cerr << "ERROR: STLS error." << endl;
+        return false;
+    }
+
+    this->stlsStarted = true;
+    if(LOGGER) cout << "STLS connection" << endl;
+
+    this->ssl = SSL_new(ctx);
+    SSL_set_mode(this->ssl, SSL_MODE_AUTO_RETRY);
+    // Attempt to connect
+    SSL_set_bio(this->ssl, bio, bio);
+
+    // Verify the connection opened and perform the handshake
+    if (SSL_connect(this->ssl) != 1)
+    {
+        cerr << "ERROR: SSL connect failed." << endl;
+        return false;
+    }
+    if (!SSL_do_handshake(this->ssl))
+    {
+        cerr << "ERROR: SSL handshake failed." << endl;
+        return false;
+    }
+    //Check if server really send a certificate
+    if ((SSL_get_peer_certificate(this->ssl)) == NULL)
+    {
+        cerr << "ERROR: Server did not provide certificate." << endl;
+        return false;
+    }
+    //Check certificate
+    if (SSL_get_verify_result(this->ssl) != X509_V_OK)
     {
         cerr << "ERROR: Error verifying, Could not connect." << endl;
         return false;
@@ -277,34 +366,41 @@ bool POP3::ConnectionSecure()
 
 bool POP3::CheckCertificate()
 {
+    this->ctx = SSL_CTX_new(TLS_client_method());
+    if (this->ctx == NULL)
+    {
+        cerr << "ERROR: Could not create SSL struct." << endl;
+        return false;
+    }
+
     char *certificate = this->options.getTlsCertificate();
     char *directory = this->options.getTlsDirectory();
 
-    if(certificate != NULL && directory == NULL)
+    if (certificate != NULL && directory == NULL)
     {
-        if(! SSL_CTX_load_verify_locations(this->ctx, certificate, NULL))
+        if (! SSL_CTX_load_verify_locations(this->ctx, certificate, NULL))
         {
             cerr << "ERROR: Certificate not found." << endl;
             return false;
         }
     }
-    else if(certificate == NULL && directory != NULL)
+    else if (certificate == NULL && directory != NULL)
     {
-        if(! SSL_CTX_load_verify_locations(this->ctx, NULL, directory))
+        if (! SSL_CTX_load_verify_locations(this->ctx, NULL, directory))
         {
             cerr << "ERROR: Certificate folder not found." << endl;
             return false;
         }
     }
-    else if(certificate != NULL && directory != NULL)
+    else if (certificate != NULL && directory != NULL)
     {
-        if(! SSL_CTX_load_verify_locations(this->ctx, certificate, directory))
+        if (! SSL_CTX_load_verify_locations(this->ctx, certificate, directory))
         {
             cerr << "ERROR: Certificate folder or file not found." << endl;
             return false;
         }
     }
-    else if( certificate == NULL && directory == NULL)
+    else if ( certificate == NULL && directory == NULL)
     {
         if (! SSL_CTX_set_default_verify_paths(this->ctx))
         {
@@ -320,7 +416,7 @@ void POP3::MakeHostname()
 {
     char str[MAX_PORT_LEN];
     sprintf(str, "%d", this->options.getPort());
-    // strcpy (hostname, "["); // add ipv6
+    // strcpy (hostname, "["); // TODO ipv6
     strcpy(this->hostname, this->options.getServer());
     strcat(this->hostname, ":");
     strcat(this->hostname,str);
@@ -329,6 +425,8 @@ void POP3::MakeHostname()
 
 int POP3::DownloadAllMails()
 {
+    if(LOGGER) cout << "Downloading all mails" << endl;
+
     int emailNumber = GetNumberOfMails();
     int numberOfMails = emailNumber;
     
@@ -340,7 +438,7 @@ int POP3::DownloadAllMails()
         result = GetUIDLofMessage(emailNumber);
         if (! result) return DOWNLOAD_FAILED;
 
-        if(IsMessageNew(this->message))
+        if (IsMessageNew(this->message))
         {
             result = AddUIDLentry(emailNumber);
             if (! result) return DOWNLOAD_FAILED;
@@ -353,6 +451,8 @@ int POP3::DownloadAllMails()
 
 int POP3::DownloadOnlyNew()
 {
+    if(LOGGER) cout << "Downloading only new mails" << endl;
+
     int emailNumber = GetNumberOfMails();
     int count = 0;
     bool result;
@@ -362,7 +462,7 @@ int POP3::DownloadOnlyNew()
         if (! result) return DOWNLOAD_FAILED;
 
         result = IsMessageNew(this->message);
-        if(result)
+        if (result)
         {
             count++;
             result = DownloadMail(emailNumber);
@@ -487,9 +587,10 @@ bool POP3::IsMessageNew(string uidlNew)
 }
 
 
-bool POP3::Delete()
+int POP3::Delete()
 {
-    
+    if(LOGGER) cout << "Deleting all mails" << endl;
+    return 7;
 }
 
 
