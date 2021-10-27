@@ -8,6 +8,8 @@ IPK/pub
 __pycache__/
 .vscode/
 
+ISA/TEST
+
 # SDL library
 SDL-1.2.15/
 
@@ -76,3 +78,4 @@ IPP/.vscode/.ropeproject/config.py
 IPP/__pycache__/constants.cpython-38.pyc
 IPP/__pycache__/error.cpython-38.pyc
 IPP/__pycache__/exec.cpython-38.pyc
+ISA/.UIDL_db
