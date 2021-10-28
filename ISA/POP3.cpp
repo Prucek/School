@@ -18,21 +18,37 @@ POP3::POP3(PopOptions options)
     OpenSSL_add_all_algorithms();
     this->options = options;
     this->stlsStarted = false;
+    this->ssl = NULL;
+    this->bio = NULL;
+    this->cert = NULL;
 }
 
 
 POP3::~POP3()
 {
-    if (this->ctx != NULL) SSL_CTX_free(this->ctx);
-    BIO_free_all(bio);
+    if (this->ctx != NULL)
+    {
+        SSL_CTX_free(this->ctx);
+    }
+    if(this->cert != NULL)
+    {
+        X509_free(this->cert);
+    }
+    if(this->options.getStls())
+    {
+        if (this->ssl != NULL)
+        {
+            SSL_shutdown(this->ssl );
+            SSL_free    (this->ssl );
+        }
+    }
+    else
+    {
+        BIO_free_all(this->bio);
+    }
+    ERR_free_strings();
+    EVP_cleanup();
 
-    // TODO
-    // SOURCE:
-    // https://stackoverflow.com/questions/29008145/valgrind-shows-memory-leak-in-ssl-after-closing-the-connection
-    // CRYPTO_cleanup_all_ex_data();
-    // ERR_free_strings();
-    // ERR_remove_state(0);
-    // EVP_cleanup();
 }
 
 
@@ -57,6 +73,9 @@ int POP3::Execute(bool *onlyNew)
     {
         downloaded = DownloadAllMails();
     }
+
+    result = Quit();
+    if( ! result) return DOWNLOAD_FAILED;
 
     return downloaded;
 }
@@ -295,7 +314,7 @@ bool POP3::ConnectionSecure()
         return false;
     }
     //Check if server send a certificate
-    if ((SSL_get_peer_certificate(this->ssl)) == NULL)
+    if ((this->cert = SSL_get_peer_certificate(this->ssl)) == NULL)
     {
         cerr << "ERROR: Server did not provide certificate." << endl;
         return false;
@@ -349,7 +368,7 @@ bool POP3::ConnectionSTLS()
         return false;
     }
     //Check if server really send a certificate
-    if ((SSL_get_peer_certificate(this->ssl)) == NULL)
+    if ((this->cert = SSL_get_peer_certificate(this->ssl)) == NULL)
     {
         cerr << "ERROR: Server did not provide certificate." << endl;
         return false;
@@ -604,4 +623,16 @@ bool POP3::CheckOK()
     {
         return false;
     }
+}
+
+bool POP3::Quit()
+{
+    bool result = SendMessage("QUIT\r\n");
+    if (! result) return false;
+    if ( !ReadMessage("\r\n")) 
+    {
+        cerr << "ERROR: Quit problem." << endl;
+        return false;
+    }
+    return true;
 }

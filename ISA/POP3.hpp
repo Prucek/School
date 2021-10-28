@@ -17,6 +17,7 @@ using namespace std;
 #include "openssl/bio.h"
 #include "openssl/ssl.h"
 #include "openssl/err.h"
+// #include "openssl/crypto.h"
 
 #include "PopOptions.hpp"
 
@@ -43,6 +44,7 @@ class POP3
         string message;
         SSL *ssl;
         bool stlsStarted;
+        X509* cert;
 
 
         bool Authenticate();
@@ -64,6 +66,7 @@ class POP3
         int DownloadOnlyNew();
         bool CheckCertificate();
         int Delete();
+        bool Quit();
 
     public:
         POP3(PopOptions options);
