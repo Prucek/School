@@ -52,12 +52,12 @@ POP3::~POP3()
 }
 
 
-int POP3::Execute(bool *onlyNew)
+int POP3::Execute(bool *onlyNew, bool *deleteFlag)
 {
     bool result = Authenticate();
-    if( ! result) return DOWNLOAD_FAILED;
+    if( ! result) return FAILED;
 
-    int downloaded = DOWNLOAD_FAILED;
+    int downloaded = FAILED;
     // TODO -n -d at the same time
     if(this->options.getNewFlag())
     {
@@ -66,8 +66,8 @@ int POP3::Execute(bool *onlyNew)
     }
     else if(this->options.getDeleteFlag())
     {
-        int deleted = Delete();
-        return -deleted;
+        *deleteFlag = true;
+        downloaded= Delete();
     }
     else
     {
@@ -75,7 +75,7 @@ int POP3::Execute(bool *onlyNew)
     }
 
     result = Quit();
-    if( ! result) return DOWNLOAD_FAILED;
+    if( ! result) return FAILED;
 
     return downloaded;
 }
@@ -330,16 +330,13 @@ bool POP3::ConnectionSecure()
 
 bool POP3::ConnectionSTLS()
 {
-    bool result = CheckCertificate();
-    if(! result) return false;
-
     if (! ReadMessage("\r\n"))
     {
         cerr << "ERROR: POP3 server error." << endl;
         return false;
     }
 
-    result = SendMessage("STLS\r\n");
+    bool result = SendMessage("STLS\r\n");
     if (! result) return false;
 
     if (! ReadMessage("\r\n"))
@@ -347,6 +344,9 @@ bool POP3::ConnectionSTLS()
         cerr << "ERROR: STLS error." << endl;
         return false;
     }
+
+    result = CheckCertificate();
+    if(! result) return false;
 
     this->stlsStarted = true;
     if(LOGGER) cout << "STLS connection" << endl;
@@ -385,7 +385,7 @@ bool POP3::ConnectionSTLS()
 
 bool POP3::CheckCertificate()
 {
-    this->ctx = SSL_CTX_new(TLS_client_method());
+    this->ctx = SSL_CTX_new(TLS_client_method()); // TODO not working on merlin, TLS_1_1 .... deprecated
     if (this->ctx == NULL)
     {
         cerr << "ERROR: Could not create SSL struct." << endl;
@@ -452,15 +452,15 @@ int POP3::DownloadAllMails()
     for(; emailNumber > 0; emailNumber--)
     {
         bool result = DownloadMail(emailNumber);
-        if (! result) return DOWNLOAD_FAILED;
+        if (! result) return FAILED;
 
         result = GetUIDLofMessage(emailNumber);
-        if (! result) return DOWNLOAD_FAILED;
+        if (! result) return FAILED;
 
         if (IsMessageNew(this->message))
         {
             result = AddUIDLentry(emailNumber);
-            if (! result) return DOWNLOAD_FAILED;
+            if (! result) return FAILED;
         }
     }
 
@@ -478,17 +478,17 @@ int POP3::DownloadOnlyNew()
     for(; emailNumber > 0; emailNumber--)
     {
         result = GetUIDLofMessage(emailNumber);
-        if (! result) return DOWNLOAD_FAILED;
+        if (! result) return FAILED;
 
         result = IsMessageNew(this->message);
         if (result)
         {
             count++;
             result = DownloadMail(emailNumber);
-            if (! result) return DOWNLOAD_FAILED;
+            if (! result) return FAILED;
 
             result = AddUIDLentry(emailNumber);
-            if (! result) return DOWNLOAD_FAILED;
+            if (! result) return FAILED;
         }
     }
 
@@ -609,7 +609,16 @@ bool POP3::IsMessageNew(string uidlNew)
 int POP3::Delete()
 {
     if(LOGGER) cout << "Deleting all mails" << endl;
-    return 7;
+    int count = 0;
+    int num = GetNumberOfMails();
+    for (int i = 1; i <= num; i++)
+    {
+        bool result = SendMessage("DELE " + to_string(i) + "\r\n");
+        if (! result) return FAILED;
+        count++ ;
+    }
+    
+    return count;
 }
 
 

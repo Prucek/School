@@ -25,7 +25,7 @@ using namespace std;
 #define MAX_NAME_LEN 256
 #define BUF_SIZE 1024
 #define DB_NAME ".UIDL_db"
-#define DOWNLOAD_FAILED -1
+#define FAILED -1
 
 struct AuthorizationPair
 {
@@ -71,7 +71,7 @@ class POP3
     public:
         POP3(PopOptions options);
         ~POP3();
-        int Execute(bool *onlyNew);
+        int Execute(bool *onlyNew, bool *deleteFlag);
 };
 
 #endif
