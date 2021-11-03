@@ -10,13 +10,15 @@
 
 using namespace std;
 #include <iostream>
-#include <getopt.h>
 #include <cstring>
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #define MAX_PARA_LEN 12
 #define OPTION_LEN 3
+#define USAGE "Usage: "\
+            " popcl <server> [-p <port>] [-T|-S [-c <certfile>] [-C <certaddr>]]"\
+            " [-d] [-n] -a <auth_file> -o <out_dir>"
 
 
 class PopOptions

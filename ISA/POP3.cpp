@@ -7,7 +7,7 @@
 
 # include "POP3.hpp"
 
-#define LOGGER 1
+#define LOGGER 0
 
 POP3::POP3(PopOptions options)
 {
@@ -305,14 +305,10 @@ bool POP3::ConnectionSecure()
 
     if (BIO_do_connect(bio) <= 0)
     {
-        cerr << "ERROR: Error connecting to server." << endl;
+        cerr << "ERROR: Could not connect." << endl;
         return false;
     }
-    if (BIO_do_handshake(bio) <= 0)
-    {
-        cerr << "ERROR: Error establishing SSL connection." << endl;
-        return false;
-    }
+
     //Check if server send a certificate
     if ((this->cert = SSL_get_peer_certificate(this->ssl)) == NULL)
     {
@@ -385,7 +381,7 @@ bool POP3::ConnectionSTLS()
 
 bool POP3::CheckCertificate()
 {
-    this->ctx = SSL_CTX_new(TLS_client_method()); // TODO not working on merlin, TLS_1_1 .... deprecated
+    this->ctx = SSL_CTX_new(SSLv23_client_method());
     if (this->ctx == NULL)
     {
         cerr << "ERROR: Could not create SSL struct." << endl;
@@ -433,12 +429,23 @@ bool POP3::CheckCertificate()
 
 void POP3::MakeHostname()
 {
-    char str[MAX_PORT_LEN];
-    sprintf(str, "%d", this->options.getPort());
-    // strcpy (hostname, "["); // TODO ipv6
-    strcpy(this->hostname, this->options.getServer());
-    strcat(this->hostname, ":");
-    strcat(this->hostname,str);
+    char* server = this->options.getServer();
+    char port[MAX_PORT_LEN];
+    sprintf(port, "%d", this->options.getPort());
+
+    if (strstr(server, ":") != NULL) //is IPv6
+    {
+        strcpy(this->hostname, "[");
+        strcat(this->hostname, server);
+        strcat(this->hostname, "]:");
+        strcat(this->hostname, port);
+    }
+    else
+    {
+        strcpy(this->hostname, server);
+        strcat(this->hostname, ":");
+        strcat(this->hostname, port);
+    }
 }
 
 

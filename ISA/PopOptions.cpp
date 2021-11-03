@@ -16,18 +16,24 @@ PopOptions::PopOptions()
     this->stls = false;  // -S
     this->tlsCertificate = NULL;
     this->tlsDirectory = NULL;
+    this->authorizationFile = NULL;
+    this->outputDirecory = NULL;
+    this->server = NULL;
 
 }
 
 bool PopOptions::Create(char *argv[], int argc)
 {
     FindServer(argv, argc);
-    bool returnValue = ArgumentParse(argc, argv);
-    if (server == NULL || !returnValue)
+    if (this->server == NULL)
     {
-        cout << "Usage: "
-        " popcl <server> [-p <port>] [-T|-S [-c <certfile>] [-C <certaddr>]]"
-        " [-d] [-n] -a <auth_file> -o <out_dir>" << endl;
+        cout << USAGE << endl;
+        return false;
+    }
+
+    bool returnValue = ArgumentParse(argc, argv);
+    if (!returnValue)
+    {
         return false;
     }
     return true;
@@ -80,81 +86,102 @@ void PopOptions::FindServer(char *argv[], int argc)
 
 bool PopOptions::ArgumentParse(int argc, char* argv[])
 {
-    int iarg = 0;
-
-    while(iarg != -1)
+    for(int i = 1; i < argc; i++)
     {
-        iarg = getopt(argc, argv, "p:TSc:C:dna:o:");
-        
-        switch (iarg)
+        string str(argv[i]);
+        if (str == this->server)
         {
-            case 'p':
+            continue;
+        }
+        else if (str == "-p")
+        {
+            if (i+1 >= argc) 
             {
-                char *endptr = nullptr;
-
-                this->port = (unsigned)strtoul(optarg, &endptr, 10);
-                if (strcmp(endptr, "")) 
-                {
-                    cerr << "ERROR: port should be a number (0-65535)." << endl;
-                    return false;
-                }
-                if (this->port > 65535 || optarg[0] == '-')
-                {
-                    cerr << "ERROR: port should be a number (0-65535)." << endl;
-                    return false;
-                }
-                break;
-            }
-            case 'T':
-            {
-                this->pop3s = true;
-                this->port = 995; // default pop3s
-                break;
-            }
-            case 'S':
-            {
-                this->stls = true;
-                break;
-            }
-            case 'c':
-            {
-                if (!CheckFile(optarg)) return false;
-                this->tlsCertificate = optarg;
-                break;
-            }
-            case 'C':
-            {
-                if (!CheckDir(optarg)) return false;
-                this->tlsDirectory = optarg;
-                break;
-            }
-            case 'a':
-            {
-                if (!CheckFile(optarg)) return false;
-                this->authorizationFile = optarg;
-                break;
-            }
-            case 'o':
-            {
-                if (!CheckDir(optarg)) return false;
-                this->outputDirecory = optarg;
-                break;
-            }
-            case 'd':
-            {
-                this->deleteFlag = true;
-                break;
-            }
-            case 'n':
-            {
-                this->newFlag = true;
-                break;
-            }
-            case '?':
+                cout << USAGE << endl;
                 return false;
+            }
+            char *endptr = nullptr;
 
-        } // end switch
-    } // end while
+            this->port = (unsigned)strtoul(argv[i+1], &endptr, 10);
+            if (strcmp(endptr, "")) 
+            {
+                cerr << "ERROR: port should be a number (0-65535)." << endl;
+                return false;
+            }
+            if (this->port > 65535 || argv[i+1][0] == '-')
+            {
+                cerr << "ERROR: port should be a number (0-65535)." << endl;
+                return false;
+            }
+            i++; 
+        }
+        else if (str == "-T")
+        {
+            this->pop3s = true;
+            this->port = 995; // default pop3s
+        }
+        else if (str == "-S")
+        {
+            this->stls = true;
+        }
+        else if (str == "-c")
+        {
+            if (i+1 >= argc) 
+            {
+                cout << USAGE << endl;
+                return false;
+            }
+            if (!CheckFile(argv[i+1])) return false;
+            this->tlsCertificate = argv[i+1];
+            i++;
+        }
+        else if (str == "-C")
+        {
+            if (i+1 >= argc) 
+            {
+                cout << USAGE << endl;
+                return false;
+            }
+            if (!CheckDir(argv[i+1])) return false;
+            this->tlsDirectory = argv[i+1];
+            i++;
+        }
+        else if (str == "-a")
+        {
+            if (i+1 >= argc) 
+            {
+                cout << USAGE << endl;
+                return false;
+            }
+            if (!CheckFile(argv[i+1])) return false;
+            this->authorizationFile = argv[i+1];
+            i++;
+        }
+        else if (str == "-o")
+        {
+            if (i+1 >= argc) 
+            {
+                cout << USAGE << endl;
+                return false;
+            }
+            if (!CheckDir(argv[i+1])) return false;
+            this->outputDirecory = argv[i+1];
+            i++;
+        }
+        else if (str == "-d")
+        {
+            this->deleteFlag = true;
+        }
+        else if (str == "-n")
+        {
+            this->newFlag = true;
+        }
+        else
+        {
+            cout << USAGE << endl;
+            return false;
+        }
+    } // end for
 
     if (this->outputDirecory == NULL)
     {
