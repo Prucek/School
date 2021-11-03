@@ -8,8 +8,6 @@
 #ifndef __POPCL_HPP__
 #define __POPCL_HPP__
 
-#include <iostream>
-
 #include "PopOptions.hpp"
 #include "POP3.hpp"
 

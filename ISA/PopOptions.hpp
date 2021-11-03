@@ -9,6 +9,7 @@
 #define __POPOPTIONS_HPP__
 
 using namespace std;
+
 #include <iostream>
 #include <cstring>
 #include <sys/types.h>
@@ -24,7 +25,6 @@ using namespace std;
 class PopOptions
 {
     private:
-        //fields
         char *authorizationFile;
         char *outputDirecory;
         int port;
@@ -36,14 +36,34 @@ class PopOptions
         char *tlsCertificate;
         char *tlsDirectory;
 
-        //methods
-        void FindServer(char *argv[], int argc);
+        /**
+         * @brief Defines which of the option is server name
+         */
+        void FindServer(int argc, char *argv[]);
+
+        /**
+         * @brief Parses CL options and arguments
+         */
         bool ArgumentParse(int argc, char* argv[]);
+
+        /**
+         * @brief Checks if file exists
+         * 
+         * @param string name/path of file
+         */
         bool CheckFile(char *string);
+
+        /**
+         * @brief Checks if directory exists
+         * 
+         * @param string name/path of directory
+         */
         bool CheckDir(char *string);
 
     public:
         PopOptions();
+
+        // getters
         char* getAuthorizationFile(){return this->authorizationFile;}
         char* getOutputDirecotry(){return this->outputDirecory;}
         char* getServer(){return this->server;}
@@ -54,9 +74,11 @@ class PopOptions
         bool getNewFlag(){return this->newFlag;}
         char* getTlsCertificate(){return this->tlsCertificate;}
         char* getTlsDirectory(){return this->tlsDirectory;}
-        bool Create(char *argv[], int argc);
-        
 
+        /**
+         * @brief Initializes all fields and checks whole syntax of CL arguments and options
+         */
+        bool Create(int argc, char *argv[]);
 };
 
 #endif

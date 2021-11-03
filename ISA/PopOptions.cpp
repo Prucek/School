@@ -22,9 +22,9 @@ PopOptions::PopOptions()
 
 }
 
-bool PopOptions::Create(char *argv[], int argc)
+bool PopOptions::Create(int argc, char *argv[])
 {
-    FindServer(argv, argc);
+    FindServer(argc, argv);
     if (this->server == NULL)
     {
         cout << USAGE << endl;
@@ -39,7 +39,7 @@ bool PopOptions::Create(char *argv[], int argc)
     return true;
 }
 
-void PopOptions::FindServer(char *argv[], int argc)
+void PopOptions::FindServer(int argc, char *argv[])
 {
     char without_param_options[][OPTION_LEN] = {"-T","-S","-d","-n"};
     char with_param_options   [][OPTION_LEN] = {"-c","-C","-p","-a","-o"};

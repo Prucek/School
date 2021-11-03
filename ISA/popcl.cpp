@@ -10,7 +10,7 @@
 int main(int argc, char *argv[])
 {
     PopOptions options = PopOptions();
-    if (!options.Create(argv, argc))
+    if (!options.Create(argc, argv))
     {
         return ARG_ERR;
     }

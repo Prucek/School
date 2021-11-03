@@ -9,6 +9,7 @@
 
 #define LOGGER 0
 
+
 POP3::POP3(PopOptions options)
 {
     this->ctx = NULL;
@@ -58,7 +59,7 @@ int POP3::Execute(bool *onlyNew, bool *deleteFlag)
     if( ! result) return FAILED;
 
     int downloaded = FAILED;
-    // TODO -n -d at the same time
+    // if -n -d at the same time - ignoring -d
     if(this->options.getNewFlag())
     {
         *onlyNew = true;
@@ -67,7 +68,7 @@ int POP3::Execute(bool *onlyNew, bool *deleteFlag)
     else if(this->options.getDeleteFlag())
     {
         *deleteFlag = true;
-        downloaded= Delete();
+        downloaded = Delete();
     }
     else
     {
@@ -111,7 +112,6 @@ bool POP3::SendMessage(string str)
                     return false;
                 }
             }
-            
         }
         else
         {
@@ -222,11 +222,11 @@ bool POP3::Authenticate()
 }
 
 
-bool POP3::ReadAuthFile(char *file_name)
+bool POP3::ReadAuthFile(char *fileName)
 {
     this->pair = AuthorizationPair();
     string myText,buf;
-    ifstream file(file_name);
+    ifstream file(fileName);
 
     while (getline (file, myText)) 
     {
@@ -263,7 +263,7 @@ bool POP3::ConnectionUnsecure()
 {
     if(LOGGER) cout << "Unsecure connection" << endl;
 
-    this->bio = BIO_new_connect(hostname);
+    this->bio = BIO_new_connect(this->hostname);
 
     if (this->bio == NULL)
     {
@@ -582,14 +582,10 @@ bool POP3::GetUIDLofMessage(int messageNumber)
         cerr << "ERROR: UIDL problem." << endl;
         return false;
     }
-    ParseUIDLofMessage();
-    return true;
-}
 
-void POP3::ParseUIDLofMessage()
-{
     this->message.erase(0, this->message.find(" ") + 1);
     this->message.erase(0, this->message.find(" ") + 1);
+    return true;
 }
 
 
