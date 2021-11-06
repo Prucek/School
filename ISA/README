@@ -1,0 +1,33 @@
+# ISA projekt
+## Klient POP3 s podporou TLS
+
+Autor: Peter Rúček, xrucek00
+
+Tento program slúži ako CL POP3 klient. Podporuje STLS aj šiforvanú verziu POP3s.
+Funguje aj pre IPv4 ako aj pre IPv6. Umožňuje všetkú požadovanú funkcionalitu =
+    - sťahovanie všetkých mailov
+    - sťahovanie iba nových mailov
+    - mazanie všetkých mailov.
+Voľby sa dajú meniť parametrami.
+
+Usage:
+    popcl <server> [-p <port>] [-T|-S [-c <certfile>] [-C <certaddr>]] [-d] [-n] -a <auth_file> -o <out_dir>
+
+Zoznam odovzdaných súborov:
+    POP3.cpp
+    POP3.hpp
+    PopOptions.cpp
+    PopOptions.hpp
+    popcl.cpp
+    popcl.hpp
+    Makefile
+    manual.pdf
+    README
+
+Spustenie:
+    Využíva sa štandart C++ 11. Pred spustením je nutné spustiť príkaz make.
+    ./popcl -o MAIL -a school_auth 147.229.176.14 -n -T
+    ./popcl mail.websupport.sk -o . -a right_user_name 
+    ./popcl mail.websupport.sk -o . -a right_user_name -S -d
+    ./popcl 2001:67c:1220:8b0::93e5:b00e -T -o . -a school_auth
+
