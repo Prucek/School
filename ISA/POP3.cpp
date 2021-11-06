@@ -89,16 +89,16 @@ bool POP3::SendMessage(string str)
     
     while (loop)
     {
-        int ret_val = 0;
+        int retVal = 0;
         if (this->stlsStarted)
         {
-            ret_val = SSL_write(this->ssl, buf, (int)str.size());
+            retVal = SSL_write(this->ssl, buf, (int)str.size());
         }
         else
         {
-            ret_val = BIO_write(this->bio, buf, (int)str.size());
+            retVal = BIO_write(this->bio, buf, (int)str.size());
         }
-        if (ret_val <= 0)
+        if (retVal <= 0)
         {
             if (this->stlsStarted)
             {
@@ -131,17 +131,17 @@ bool POP3::ReadMessage(string dot)
     while (loop)
     {
         char buf[BUF_SIZE]= {0};
-        int ret_val = 0;
+        int retVal = 0;
         if (this->stlsStarted)
         {
-            ret_val = SSL_read(this->ssl, buf, BUF_SIZE - 2);
+            retVal = SSL_read(this->ssl, buf, BUF_SIZE - 2);
         }
         else
         {
-            ret_val = BIO_read(this->bio, buf, BUF_SIZE - 2);
+            retVal = BIO_read(this->bio, buf, BUF_SIZE - 2);
         }
         
-        if (ret_val <= 0)
+        if (retVal <= 0)
         {
             if (this->stlsStarted)
             {
@@ -233,14 +233,14 @@ bool POP3::ReadAuthFile(char *fileName)
         buf += myText;
         buf += ' ';
     }
-    string space_delimiter = " ";
+    string spaceDelimiter = " ";
     vector<string> words{};
 
     size_t pos = 0;
-    while ((pos = buf.find(space_delimiter)) != string::npos)
+    while ((pos = buf.find(spaceDelimiter)) != string::npos)
     {
         words.push_back(buf.substr(0, pos));
-        buf.erase(0, pos + space_delimiter.length());
+        buf.erase(0, pos + spaceDelimiter.length());
     }
     // exact order in the file
     // username = user
@@ -271,7 +271,7 @@ bool POP3::ConnectionUnsecure()
         return false;
     }
 
-    if (BIO_do_connect(bio) <= 0)
+    if (BIO_do_connect(this->bio) <= 0)
     {
         cerr << "ERROR: Could not connect." << endl;
         return false;
@@ -303,7 +303,7 @@ bool POP3::ConnectionSecure()
 
     // Verify the connection opened and perform the handshake
 
-    if (BIO_do_connect(bio) <= 0)
+    if (BIO_do_connect(this->bio) <= 0)
     {
         cerr << "ERROR: Could not connect." << endl;
         return false;
@@ -350,7 +350,7 @@ bool POP3::ConnectionSTLS()
     this->ssl = SSL_new(ctx);
     SSL_set_mode(this->ssl, SSL_MODE_AUTO_RETRY);
     // Attempt to connect
-    SSL_set_bio(this->ssl, bio, bio);
+    SSL_set_bio(this->ssl, this->bio, this->bio);
 
     // Verify the connection opened and perform the handshake
     if (SSL_connect(this->ssl) != 1)
