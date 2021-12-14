@@ -275,30 +275,58 @@ int main(void)
 
 	delay(tdelay1, tdelay2);
 
-	uint32_t *columns = ParseLetter(K);
-	uint32_t *columns2 = ParseLetter(O);
-	uint32_t *columns3 = ParseLetter(T);
+	uint32_t *columns = ParseLetter(H);
+	uint32_t *columns2 = ParseLetter(A);
+	uint32_t *columns3 = ParseLetter(H);
 
 	/*uint32_t* total = malloc(5*8*32); // array to hold the result
-
 	memset(total, 0, 32*8*5);
 	memcpy(total , columns, 8 * 32);
 	memcpy(total + 8, columns2, 8 * 32);
 	memcpy(total + 16, columns3, 8 * 32);*/
 
-	uint32_t* total = malloc(5*8*32); // array to hold the result
+	uint32_t **total = malloc(5*8*32); // array to hold the result
 
-	memset(total, 0, 32*8*3);
-	memcpy(total + 16, columns , 8 * 32);
-	memcpy(total + 24, columns2, 8 * 32);
-	memcpy(total + 32, columns3, 8 * 32);
+	//memset(total, 0, 32*8*5);
+	//memcpy(total + 16, columns , 8 * 32);
+	//memcpy(total + 24, columns2, 8 * 32);
+	//memcpy(total + 32, columns3, 8 * 32);
+	int count = 0;
+	int count2 = 0;
+	int count3 = 0;
+	int count4 = 0;
+	int count5 = 0;
+
+	for(int i = 0; i < 40; i++)
+	{
+		if (i < 8)
+		{
+			(*total)[i] = columns[count++];
+		}
+		else if (i < 16)
+		{
+			(*total)[i] = columns2[count2++];
+		}
+		else if (i < 24)
+		{
+			(*total)[i] = columns[count3++];
+		}
+		else if (i < 32)
+		{
+			(*total)[i] = columns2[count4++];
+		}
+		else if (i < 40)
+		{
+			(*total)[i] = columns3[count5++];
+		}
+	}
 
 	CircularBuffer *cb = malloc(sizeof(struct circularBuffer));
 	cb->first = NULL;
 	for(int i = 0; i < 40; i++)
 	{
 		Node *n = malloc(sizeof(struct node));
-		n->data = total[i];
+		n->data = (*total)[i];
 		addNode(cb, n);
 	}
 
@@ -309,7 +337,6 @@ int main(void)
 	{
 		start = start->next;
 		next = start;
-		delay(tdelay1, tdelay2);
 		delayFunction(writeColumn,tmp);
 		tmp = next;
 	}
