@@ -56,7 +56,7 @@ unsigned char Z[] = {0b00000000,0b00111100,0b00000100,0b00001000,0b00010000,0b00
 typedef struct node Node;
 struct node {
 	Node *next;
-	uint32_t *data;
+	uint32_t data;
 };
 typedef struct circularBuffer CircularBuffer;
 struct circularBuffer {
@@ -69,7 +69,8 @@ void addNode(CircularBuffer *cb, Node *n)
 	Node *first = cb->first;
 	if (first == NULL)
 	{
-		first = n;
+		cb->first = n;
+		cb->first->next = cb->first;
 		return;
 	}
 
@@ -99,7 +100,7 @@ void freeBuffer(CircularBuffer *cb)
 uint32_t* ParseLetter(unsigned char letter[])
 {
 	uint32_t *result = malloc(8*32);
-	int pos = 0;
+	uint32_t pos = 0;
 	for(int i = 0; i < 8 ; i++)
 		result[i] = 0;
 
@@ -196,7 +197,7 @@ void delay(int t1, int t2)
 }
 
 /* Function delay loop */
-void delayFunction( void (*fun)(uint32_t ,int), uint32_t param, int num)
+void delayFunction( void (*fun)(Node * ), Node * param)
 {
 
 	int i, j;
@@ -205,7 +206,7 @@ void delayFunction( void (*fun)(uint32_t ,int), uint32_t param, int num)
 	{
 		for(j=0; j<5; j++)
 		{
-			fun(param, num);
+			fun(param);
 		}
 	}
 
@@ -251,14 +252,20 @@ void column_select(unsigned int col_num)
 	}
 }
 
-void writeColumn(uint32_t column, int i)
+void writeColumn(Node* node)
 {
-	DEL();
-	column_select(i);
-	PTA->PDOR |= GPIO_PDOR_PDO(column);
-	PTE->PDDR &= ~GPIO_PDDR_PDD( GPIO_PIN(28) );
-	delay(tdelay3, tdelay3);
-	PTE->PDOR |= GPIO_PDOR_PDO( GPIO_PIN(28));
+
+	for (int k = 0; k < 16; k++)
+	{
+		DEL();
+		column_select(k);
+		PTA->PDOR |= GPIO_PDOR_PDO(node->data);
+		PTE->PDDR &= ~GPIO_PDDR_PDD( GPIO_PIN(28) );
+		delay(tdelay3, tdelay3);
+		PTE->PDOR |= GPIO_PDOR_PDO( GPIO_PIN(28));
+
+		node = node->next;
+	}
 }
 
 
@@ -272,10 +279,17 @@ int main(void)
 	uint32_t *columns2 = ParseLetter(O);
 	uint32_t *columns3 = ParseLetter(T);
 
-	uint32_t* total = malloc(5*8*32); // array to hold the result
+	/*uint32_t* total = malloc(5*8*32); // array to hold the result
 
 	memset(total, 0, 32*8*5);
-	memcpy(total + 16, columns, 8 * 32);
+	memcpy(total , columns, 8 * 32);
+	memcpy(total + 8, columns2, 8 * 32);
+	memcpy(total + 16, columns3, 8 * 32);*/
+
+	uint32_t* total = malloc(5*8*32); // array to hold the result
+
+	memset(total, 0, 32*8*3);
+	memcpy(total + 16, columns , 8 * 32);
 	memcpy(total + 24, columns2, 8 * 32);
 	memcpy(total + 32, columns3, 8 * 32);
 
@@ -284,21 +298,20 @@ int main(void)
 	for(int i = 0; i < 40; i++)
 	{
 		Node *n = malloc(sizeof(struct node));
-		n->data = &(total[i]);
+		n->data = total[i];
 		addNode(cb, n);
 	}
 
 	Node *start = cb->first;
+	Node *next = start;
+	Node *tmp = start;
 	for (;;)
 	{
 		start = start->next;
-		Node *tmp = start;
-		for (int i=15; i>=0; i--)
-		{
-			//delayFunction(writeColumn, *(tmp->data), i);
-			writeColumn(*(tmp->data), i);
-			tmp = tmp->next;
-		}
+		next = start;
+		delay(tdelay1, tdelay2);
+		delayFunction(writeColumn,tmp);
+		tmp = next;
 	}
 	free(columns);
 	free(columns2);
