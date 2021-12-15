@@ -98,12 +98,16 @@ void freeBuffer(CircularBuffer *cb)
 }
 
 
-uint32_t* ParseLetter(unsigned char letter[])
+uint32_t** ParseLetter(unsigned char letter[])
 {
-	uint32_t *result = malloc(8*32);
+	uint32_t **result = malloc(8*sizeof(uint32_t *));
 	uint32_t pos = 0;
 	for(int i = 0; i < 8 ; i++)
-		result[i] = 0;
+	{
+		result[i] = malloc(sizeof(uint32_t *));
+		*(result[i]) = 0;
+	}
+
 
 	for (int i = 0; i < 8; i++)
 	{
@@ -119,48 +123,48 @@ uint32_t* ParseLetter(unsigned char letter[])
 
 		if (letter[i] & 0b00000001)
 		{
-			result[7] |= pos;
+			*(result[7]) |= pos;
 		}
 		if (letter[i] & 0b00000010)
 		{
-			result[6] |= pos;
+			*(result[6]) |= pos;
 		}
 		if (letter[i] & 0b00000100)
 		{
-			result[5] |= pos;
+			*(result[5]) |= pos;
 		}
 		if (letter[i] & 0b00001000)
 		{
-			result[4] |= pos;
+			*(result[4]) |= pos;
 		}
 		if (letter[i] & 0b00010000)
 		{
-			result[3] |= pos;
+			*(result[3]) |= pos;
 		}
 		if (letter[i] & 0b00100000)
 		{
-			result[2] |= pos;
+			*(result[2]) |= pos;
 		}
 		if (letter[i] & 0b01000000)
 		{
-			result[1] |= pos;
+			*(result[1]) |= pos;
 		}
 		if (letter[i] & 0b10000000)
 		{
-			result[0] |= pos;
+			*(result[0]) |= pos;
 		}
 	}
 	return result;
 }
 
-uint32_t* ParseWord(char *string)
+uint32_t** ParseWord(char string[], int size)
 {
-	uint32_t *result = malloc(32*8);
-	result = realloc(result, strlen(string)*8*32);
+	uint32_t **result = malloc(8*sizeof(uint32_t *));
+	result = realloc(result, size*8*sizeof(uint32_t *));
 	int count = 0;
-	for(int i = 0; i < strlen(string); i++)
+	for(int i = 0; i < size; i++)
 	{
-		uint32_t *columns;// = malloc(32*8);
+		uint32_t **columns;// = malloc(32*8);
 		char ch = toupper((unsigned char) string[i]);
 		switch(ch)
 		{
@@ -173,11 +177,29 @@ uint32_t* ParseWord(char *string)
 			case 'C':
 				columns = ParseLetter(C);
 				break;
+			case 'D':
+				columns = ParseLetter(D);
+				break;
+			case 'E':
+				columns = ParseLetter(E);
+				break;
+			case 'F':
+				columns = ParseLetter(F);
+				break;
+			case 'G':
+				columns = ParseLetter(G);
+				break;
+			case 'H':
+				columns = ParseLetter(H);
+				break;
+			case 'I':
+				columns = ParseLetter(I);
+				break;
 			default:
 				columns = ParseLetter(X);
 				break;
 		}
-		for (int j =0; j < 8 ; j++)
+		for (int j = 0; j < 8 ; j++)
 			result[count++] = columns[j];
 	}
 	return result;
@@ -306,36 +328,21 @@ int main(void)
 
 	delay(tdelay1, tdelay2);
 
-	char *string = "bacaf";
-	uint32_t *word = ParseWord(string);
-
-	int wordSize = sizeof(string);
-	uint32_t **total =&word;// malloc(8*32); // array to hold the result
-	//*total = realloc(*total, 8*32*(wordSize+1));
-
-	/*int count = 0;
-
-	for(int i = -1; i < wordSize; i++)
-	{
-		for (int j = 0; j < 8 ; j++)
-		{
-			if (i == -1)
-			{
-				(*total)[count++] = 0;
-				continue;
-			}
-			(*total)[count++] = word[i][j];
-		}
-	}*/
+	char *string = "abcdefgh";
+	int wordSize = strlen(string);
+	uint32_t **word = ParseWord(string, wordSize);
 
 	CircularBuffer *cb = malloc(sizeof(struct circularBuffer));
 	cb->first = NULL;
 	for(int i = 0; i < 8*(wordSize); i++)
 	{
 		Node *n = malloc(sizeof(struct node));
-		n->data = (*total)[i];
+		n->data = *(word[i]);
 		addNode(cb, n);
+		free(word[i]);
 	}
+
+	free(word);
 
 	Node *start = cb->first;
 	Node *next = start;
@@ -348,12 +355,7 @@ int main(void)
 		tmp = next;
 	}
 
-	for(int i = 0; i < wordSize; i++)
-	{
-		free(word[i]);
-	}
-	free(word);
-	free(total);
+
 	freeBuffer(cb);
     /* Never leave main */
     return 0;
