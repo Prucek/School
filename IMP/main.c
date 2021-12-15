@@ -2,6 +2,7 @@
 #include "MK60DZ10.h"
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 /* Macros for bit-level registers manipulation */
 #define GPIO_PIN_MASK	0x1Fu
@@ -152,6 +153,36 @@ uint32_t* ParseLetter(unsigned char letter[])
 	return result;
 }
 
+uint32_t* ParseWord(char *string)
+{
+	uint32_t *result = malloc(32*8);
+	result = realloc(result, strlen(string)*8*32);
+	int count = 0;
+	for(int i = 0; i < strlen(string); i++)
+	{
+		uint32_t *columns;// = malloc(32*8);
+		char ch = toupper((unsigned char) string[i]);
+		switch(ch)
+		{
+			case 'A':
+				columns = ParseLetter(A);
+				break;
+			case 'B':
+				columns = ParseLetter(B);
+				break;
+			case 'C':
+				columns = ParseLetter(C);
+				break;
+			default:
+				columns = ParseLetter(X);
+				break;
+		}
+		for (int j =0; j < 8 ; j++)
+			result[count++] = columns[j];
+	}
+	return result;
+}
+
 /* Configuration of the necessary MCU peripherals */
 void SystemConfig() {
 	/* Turn on all port clocks */
@@ -202,9 +233,9 @@ void delayFunction( void (*fun)(Node * ), Node * param)
 
 	int i, j;
 
-	for(i=0; i<5; i++)
+	for(i=0; i<2; i++)
 	{
-		for(j=0; j<5; j++)
+		for(j=0; j<2; j++)
 		{
 			fun(param);
 		}
@@ -275,55 +306,31 @@ int main(void)
 
 	delay(tdelay1, tdelay2);
 
-	uint32_t *columns = ParseLetter(H);
-	uint32_t *columns2 = ParseLetter(A);
-	uint32_t *columns3 = ParseLetter(H);
+	char *string = "bacaf";
+	uint32_t *word = ParseWord(string);
 
-	/*uint32_t* total = malloc(5*8*32); // array to hold the result
-	memset(total, 0, 32*8*5);
-	memcpy(total , columns, 8 * 32);
-	memcpy(total + 8, columns2, 8 * 32);
-	memcpy(total + 16, columns3, 8 * 32);*/
+	int wordSize = sizeof(string);
+	uint32_t **total =&word;// malloc(8*32); // array to hold the result
+	//*total = realloc(*total, 8*32*(wordSize+1));
 
-	uint32_t **total = malloc(5*8*32); // array to hold the result
+	/*int count = 0;
 
-	//memset(total, 0, 32*8*5);
-	//memcpy(total + 16, columns , 8 * 32);
-	//memcpy(total + 24, columns2, 8 * 32);
-	//memcpy(total + 32, columns3, 8 * 32);
-	int count = 0;
-	int count2 = 0;
-	int count3 = 0;
-	int count4 = 0;
-	int count5 = 0;
-
-	for(int i = 0; i < 40; i++)
+	for(int i = -1; i < wordSize; i++)
 	{
-		if (i < 8)
+		for (int j = 0; j < 8 ; j++)
 		{
-			(*total)[i] = columns[count++];
+			if (i == -1)
+			{
+				(*total)[count++] = 0;
+				continue;
+			}
+			(*total)[count++] = word[i][j];
 		}
-		else if (i < 16)
-		{
-			(*total)[i] = columns2[count2++];
-		}
-		else if (i < 24)
-		{
-			(*total)[i] = columns[count3++];
-		}
-		else if (i < 32)
-		{
-			(*total)[i] = columns2[count4++];
-		}
-		else if (i < 40)
-		{
-			(*total)[i] = columns3[count5++];
-		}
-	}
+	}*/
 
 	CircularBuffer *cb = malloc(sizeof(struct circularBuffer));
 	cb->first = NULL;
-	for(int i = 0; i < 40; i++)
+	for(int i = 0; i < 8*(wordSize); i++)
 	{
 		Node *n = malloc(sizeof(struct node));
 		n->data = (*total)[i];
@@ -340,9 +347,12 @@ int main(void)
 		delayFunction(writeColumn,tmp);
 		tmp = next;
 	}
-	free(columns);
-	free(columns2);
-	free(columns3);
+
+	for(int i = 0; i < wordSize; i++)
+	{
+		free(word[i]);
+	}
+	free(word);
 	free(total);
 	freeBuffer(cb);
     /* Never leave main */
