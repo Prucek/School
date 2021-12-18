@@ -1,6 +1,6 @@
 /**
  * @author Peter Rucek, xrucek00
- * @brief Svtelne noviny
+ * @brief Svetelne noviny
  * @date 15.12.2021
  */
 
@@ -20,7 +20,13 @@
 #define tdelay2 		20
 #define tdelay3 		70
 
+/* Buttons identification*/
+#define BUTTON_SW2 		0x400
+#define BUTTON_SW3 		0x1000
+#define BUTTON_SW4 		0x8000000
+#define BUTTON_SW5 		0x4000000
 
+/* Row identification*/
 #define R0 0x04000000
 #define R1 0x01000000
 #define R2 0x00000200
@@ -30,7 +36,12 @@
 #define R6 0x08000000
 #define R7 0x20000000
 
-char font8x8_basic[128][8] = {
+#define LETTER_LEN 8
+#define PRINT_DELAY 2
+#define MAX_LETTERS 100
+
+/* font */
+char font8x8_basic[128][LETTER_LEN] = {
 { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // U+0000 (nul)
 { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // U+0001
 { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // U+0002
@@ -158,65 +169,26 @@ char font8x8_basic[128][8] = {
 { 0x18, 0x18, 0x18, 0x00, 0x18, 0x18, 0x18, 0x00}, // U+007C (|)
 { 0x07, 0x0C, 0x0C, 0x38, 0x0C, 0x0C, 0x07, 0x00}, // U+007D (})
 { 0x6E, 0x3B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // U+007E (~)
-{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00} // U+007F
+{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}  // U+007F
 };
 
-typedef struct node Node;
-struct node {
-	Node *next;
-	uint32_t data;
-};
-typedef struct circularBuffer CircularBuffer;
-struct circularBuffer {
-	Node *first;
-	uint32_t size;
-};
 
-void AddNode(CircularBuffer *cb, Node *n)
+uint32_t columns_array[LETTER_LEN*MAX_LETTERS] = {0}; /* array that holds all columns */
+int index = LETTER_LEN; /* First 8 columns are empty*/
+
+/* Global flags*/
+int pressedSW2 = 0;
+int pressedSW3 = 0;
+int pressedSW4 = 0;
+int pressedSW5 = 0;
+int timer = 0;
+
+/*font8x8_basic is by rows, need to convert all rows to columns */
+void FromRowToColumn(unsigned char letter[])
 {
-	Node *first = cb->first;
-	if (first == NULL)
-	{
-		cb->first = n;
-		cb->first->next = cb->first;
-		return;
-	}
-
-	Node *last = first->next;
-	while(last->next != first) last = last->next;
-	last->next = n;
-	n->next = first;
-
-	cb->size++;
-}
-
-void FreeBuffer(CircularBuffer *cb)
-{
-	Node * first = cb->first;
-	Node * next = first->next;
-	while(next != first)
-	{
-		Node * tmp = next;
-		next = next->next;
-		free(tmp);
-	}
-	free(first);
-	free(cb);
-}
-
-
-uint32_t** FromRowToColumn(unsigned char letter[])
-{
-	uint32_t **result = malloc(8*sizeof(uint32_t *));
 	uint32_t pos = 0;
-	for(int i = 0; i < 8 ; i++)
-	{
-		result[i] = malloc(sizeof(uint32_t *));
-		*(result[i]) = 0;
-	}
 
-
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < LETTER_LEN; i++)
 	{
 		if (i == 0) 	 pos = R0;
 		else if (i == 1) pos = R1;
@@ -230,55 +202,52 @@ uint32_t** FromRowToColumn(unsigned char letter[])
 
 		if (letter[i] & 0b00000001)
 		{
-			*(result[0]) |= pos;
+			columns_array[index] |= pos;
 		}
 		if (letter[i] & 0b00000010)
 		{
-			*(result[1]) |= pos;
+			columns_array[index+1] |= pos;
 		}
 		if (letter[i] & 0b00000100)
 		{
-			*(result[2]) |= pos;
+			columns_array[index+2] |= pos;
 		}
 		if (letter[i] & 0b00001000)
 		{
-			*(result[3]) |= pos;
+			columns_array[index+3] |= pos;
 		}
 		if (letter[i] & 0b00010000)
 		{
-			*(result[4]) |= pos;
+			columns_array[index+4] |= pos;
 		}
 		if (letter[i] & 0b00100000)
 		{
-			*(result[5]) |= pos;
+			columns_array[index+5] |= pos;
 		}
 		if (letter[i] & 0b01000000)
 		{
-			*(result[6]) |= pos;
+			columns_array[index+6] |= pos;
 		}
 		if (letter[i] & 0b10000000)
 		{
-			*(result[7]) |= pos;
+			columns_array[index+7] |= pos;
 		}
 	}
-	return result;
+	index += LETTER_LEN;
 }
 
-uint32_t** ParseWord(char string[], int size)
+/* Cuts the string into letters */
+void ParseWord(char string[], int size)
 {
-	uint32_t **result = malloc(8*sizeof(uint32_t *));
-	result = realloc(result, size*8*sizeof(uint32_t *));
-	int count = 0;
+	for (int i = 0; i < sizeof(columns_array)/sizeof(columns_array[0]); i++)
+	{
+		columns_array[i] = 0;
+	}
+	index = LETTER_LEN;
 	for(int i = 0; i < size; i++)
 	{
-		uint32_t **columns;
-		char ch = string[i];
-		columns = FromRowToColumn(font8x8_basic[(int)ch]);
-
-		for (int j = 0; j < 8 ; j++)
-			result[count++] = columns[j];
+		FromRowToColumn(font8x8_basic[(int)string[i]]);
 	}
-	return result;
 }
 
 /* Configuration of the necessary MCU peripherals */
@@ -312,8 +281,28 @@ void SystemConfig() {
 
 	/* Change corresponding PTE port pins as outputs */
 	PTE->PDDR = GPIO_PDDR_PDD( GPIO_PIN(28) );
-}
 
+	/* Configuration of buttons */
+	PORTE->PCR[10] = (PORT_PCR_ISF_MASK | PORT_PCR_IRQC(0x0A) | PORT_PCR_MUX(0x01) | PORT_PCR_PE_MASK  | PORT_PCR_PS_MASK   ); //SW2
+	PORTE->PCR[12] = (PORT_PCR_ISF_MASK | PORT_PCR_IRQC(0x0A) | PORT_PCR_MUX(0x01) | PORT_PCR_PE_MASK  | PORT_PCR_PS_MASK   ); //SW3
+	PORTE->PCR[27] = (PORT_PCR_ISF_MASK | PORT_PCR_IRQC(0x0A) | PORT_PCR_MUX(0x01) | PORT_PCR_PE_MASK  | PORT_PCR_PS_MASK   ); //SW4
+	PORTE->PCR[26] = (PORT_PCR_ISF_MASK | PORT_PCR_IRQC(0x0A) | PORT_PCR_MUX(0x01) | PORT_PCR_PE_MASK  | PORT_PCR_PS_MASK   ); //SW5
+
+	/* Enabling nvic - interruptions */
+	NVIC_ClearPendingIRQ(PORTE_IRQn);
+	NVIC_EnableIRQ(PORTE_IRQn);
+
+	/* Timer config */
+	SIM->SCGC6 |= SIM_SCGC6_PIT_MASK;
+	PIT->MCR &= 0x0u;
+	PIT->CHANNEL[0].LDVAL = 0x23C34600;
+	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK;
+	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TEN_MASK;
+
+	NVIC_SetPriority(PIT0_IRQn, 3);
+	NVIC_ClearPendingIRQ(PIT0_IRQn);
+	NVIC_EnableIRQ(PIT0_IRQn);
+}
 
 /* Variable delay loop */
 void Delay(int t1, int t2)
@@ -325,20 +314,57 @@ void Delay(int t1, int t2)
 	}
 }
 
-/* Function delay loop */
-void DelayFunction( void (*fun)(Node * ), Node * param)
+/* Writing delay loop */
+void DelayWrite( void (*write)(int), int cur_index)
 {
-
 	int i, j;
 
-	for(i=0; i<3; i++)
+	for(i=0; i< PRINT_DELAY; i++)
 	{
-		for(j=0; j<3; j++)
+		for(j=0; j< PRINT_DELAY; j++)
 		{
-			fun(param);
+			write(cur_index);
 		}
 	}
+}
 
+/* Handler of the button interruptions */
+void PORTE_IRQHandler(void)
+{
+	/* reset timer */
+	PIT->CHANNEL[0].TCTRL &= ~PIT_TCTRL_TEN_MASK;
+	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TEN_MASK;
+
+	Delay(100, 1000);
+	if (PORTE->ISFR &= BUTTON_SW5)
+	{
+			pressedSW5 = 1;
+	}
+	else if (PORTE->ISFR &= BUTTON_SW3)
+	{
+		pressedSW3 = 1;
+	}
+	else if (PORTE->ISFR &= BUTTON_SW4)
+	{
+			pressedSW4 = 1;
+	}
+	else if (PORTE->ISFR &= BUTTON_SW2)
+	{
+			pressedSW2 = 1;
+	}
+	else;
+}
+
+/* Handler of the timer interruptions */
+void PIT0_IRQHandler(void)
+{
+
+	if(PIT->CHANNEL[0].TFLG & PIT_TFLG_TIF_MASK)
+	{
+		PIT->CHANNEL[0].TFLG &= PIT_TFLG_TIF_MASK;
+		NVIC_ClearPendingIRQ(PIT0_IRQn);
+	}
+	timer = 1;
 }
 
 
@@ -381,65 +407,93 @@ void column_select(unsigned int col_num)
 	}
 }
 
-void WriteColumn(Node* node)
+/* Function writes from columns_array 16 values (columns) into the display*/
+void Write16Columns(int cur_index)
 {
-
+	int calculated_index = 0;
+	int overflow_position = 0;
 	for (int k = 0; k < 16; k++)
 	{
+		calculated_index = cur_index + k;
+		if (calculated_index >= index)
+		{
+			if (!overflow_position)
+			{
+				overflow_position = calculated_index;
+			}
+			calculated_index = calculated_index - overflow_position;
+		}
 		PTA->PDOR &= GPIO_PDOR_PDO(0x00000000);
 		column_select(k);
-		PTA->PDOR |= GPIO_PDOR_PDO(node->data);
+		PTA->PDOR |= GPIO_PDOR_PDO(columns_array[calculated_index]);
 		PTE->PDDR &= ~GPIO_PDDR_PDD( GPIO_PIN(28) );
 		Delay(tdelay3, tdelay3);
 		PTE->PDOR |= GPIO_PDOR_PDO( GPIO_PIN(28));
-
-		node = node->next;
 	}
 }
 
+/* Function changes behavior of program when certain interrupts happen */
+void Inetrrupts(int *current_index)
+{
+	if (pressedSW2)
+	{
+		pressedSW2 = 0;
+		char *string = "xrucek00";
+		ParseWord(string,strlen(string));
+
+	}
+	else if (pressedSW3)
+	{
+		pressedSW3 = 0;
+		char *string = "IMP FIT VUT";
+		ParseWord(string,strlen(string));
+		*current_index = 0;
+	}
+	else if (pressedSW4)
+	{
+		pressedSW4 = 0;
+		char *string = "Merry XMAS";
+		ParseWord(string,strlen(string));
+		*current_index = 0;
+	}
+	else if (pressedSW5)
+	{
+		pressedSW5 = 0;
+		char *string = "Svetelne noviny";
+		ParseWord(string,strlen(string));
+		*current_index = 0;
+	}
+	else if (timer)
+	{
+		timer = 0;
+		char *string = ":)";
+		ParseWord(string,strlen(string));
+		*current_index = 0;
+	}
+	else;
+}
 
 int main(void)
 {
 	SystemConfig();
-
 	Delay(tdelay1, tdelay2);
 
-	char *string = "Petrikov";
-	int wordSize = strlen(string);
-	uint32_t **word = ParseWord(string, wordSize);
+	/* text on beginning */
+	char *string = "Hello World!";
+	ParseWord(string,strlen(string));
 
-	CircularBuffer *cb = malloc(sizeof(struct circularBuffer));
-	cb->first = NULL;
-	for(int i = 0; i < 8*(wordSize); i++)
+	int cur_index = 0;
+	for(;;)
 	{
-		Node *n = malloc(sizeof(struct node));
-		n->data = *(word[i]);
-		AddNode(cb, n);
-		free(word[i]);
+		Inetrrupts(&cur_index);
+		if (cur_index >= index)
+		{
+			cur_index = 0;
+		}
+		DelayWrite(Write16Columns, cur_index);
+		cur_index++;
 	}
 
-	free(word);
-
-	for(int i = 0; i < 8; i++)
-	{
-		Node *n = malloc(sizeof(struct node));
-		n->data = 0;
-		AddNode(cb, n);
-	}
-
-	Node *start = cb->first;
-	Node *next = start;
-	Node *tmp = start;
-	for (;;)
-	{
-		start = start->next;
-		next = start;
-		DelayFunction(WriteColumn,tmp);
-		tmp = next;
-	}
-
-
-	FreeBuffer(cb);
-    /* Never leave main */
-    return 0;
+	/* Never leave main */
+	return 0;
 }
