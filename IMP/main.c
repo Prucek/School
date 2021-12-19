@@ -295,7 +295,7 @@ void SystemConfig() {
 	/* Timer config */
 	SIM->SCGC6 |= SIM_SCGC6_PIT_MASK;
 	PIT->MCR &= 0x0u;
-	PIT->CHANNEL[0].LDVAL = 0x23C34600;
+	PIT->CHANNEL[0].LDVAL = 0x23C34600; // ~15 sec
 	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TIE_MASK;
 	PIT->CHANNEL[0].TCTRL |= PIT_TCTRL_TEN_MASK;
 
@@ -338,7 +338,7 @@ void PORTE_IRQHandler(void)
 	Delay(100, 1000);
 	if (PORTE->ISFR &= BUTTON_SW5)
 	{
-			pressedSW5 = 1;
+		pressedSW5 = 1;
 	}
 	else if (PORTE->ISFR &= BUTTON_SW3)
 	{
@@ -346,11 +346,11 @@ void PORTE_IRQHandler(void)
 	}
 	else if (PORTE->ISFR &= BUTTON_SW4)
 	{
-			pressedSW4 = 1;
+		pressedSW4 = 1;
 	}
 	else if (PORTE->ISFR &= BUTTON_SW2)
 	{
-			pressedSW2 = 1;
+		pressedSW2 = 1;
 	}
 	else;
 }
@@ -358,7 +358,6 @@ void PORTE_IRQHandler(void)
 /* Handler of the timer interruptions */
 void PIT0_IRQHandler(void)
 {
-
 	if(PIT->CHANNEL[0].TFLG & PIT_TFLG_TIF_MASK)
 	{
 		PIT->CHANNEL[0].TFLG &= PIT_TFLG_TIF_MASK;
@@ -440,6 +439,7 @@ void Inetrrupts(int *current_index)
 		pressedSW2 = 0;
 		char *string = "xrucek00";
 		ParseWord(string,strlen(string));
+		*current_index = 0;
 
 	}
 	else if (pressedSW3)
